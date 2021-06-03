@@ -9,10 +9,8 @@ namespace Projekt2.Models
     class Train
     {
         public int Id { get; set; }
-        public Track EntryTrack { get; set; }
-        public Track ExitTrack { get; set; }
         public Track CurrentTrack { get; set; }
+        public Track ExitTrack { get; set; }
         public Platform DestinationPlatform { get; set; }
-
     }
 }
