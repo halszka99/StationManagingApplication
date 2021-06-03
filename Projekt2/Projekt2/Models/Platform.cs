@@ -8,9 +8,14 @@ namespace Projekt2.Models
 {
     class Platform
     {
-        //public int Id { get; set; }
         public Track TrackTop { get; set; }
         public Track TrackDown { get; set; }
+        public List<Train> TrainsQueue { get; set; }
+        
+        public Platform()
+        {
+            // no i tu byśmy przypisaywali tylko który jest dolny i który górny
+        }
 
     }
 }
