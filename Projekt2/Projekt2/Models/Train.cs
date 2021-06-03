@@ -12,7 +12,7 @@ namespace Projekt2.Models
         public Track ExitTrack { get; set; }
         public Platform DestinationPlatform { get; set; }
         public TimeSpan WaitTime { get; set; }
-        public TimeSpan CurrentTime { get; set; }
+        public DateTime CurrentTime { get; set; }
         public Train()
         {
             // tutaj każdemu losowo CurrentTrack, ExitTrack, DestinationPlatform

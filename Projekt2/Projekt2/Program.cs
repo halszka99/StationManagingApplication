@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Projekt2.Models;
 
 namespace Projekt2
 {
@@ -14,6 +15,7 @@ namespace Projekt2
         [STAThread]
         static void Main()
         {
+            //Station station = new Station(2,4,4); 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new Form1());

@@ -9,11 +9,24 @@ namespace Projekt2.Models
 {
     class Track
     {
-        Mutex TrackMutex = new Mutex();
+        public Mutex TrackMutex = new Mutex();
         public bool IsEmpty { get; set; }
         public Track()
         {
-           // ustawimy każdmu isEmpty na true na początek
+            IsEmpty = true; 
+        }
+        public void Reserve()
+        {
+            TrackMutex.WaitOne();
+            if (IsEmpty)
+                IsEmpty = false;
+            TrackMutex.ReleaseMutex();
+        }
+        public void Free()
+        {
+            TrackMutex.WaitOne();
+            IsEmpty = true;
+            TrackMutex.ReleaseMutex();
         }
     }
 }
