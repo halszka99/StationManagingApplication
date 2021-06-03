@@ -12,16 +12,17 @@ namespace Projekt2.Models
         public List<Platform> Platforms { get; set; }
         public List<Junction> Junctions { get; set; }
         public List<Train> Trains { get; set; }
-        public bool Go { get; set; }
 
         public Thread stationManager; 
         public Thread trainManager; 
         public List<Thread> trainThreads = new List<Thread>();
+        public static int maxStayTime = 300;
         public static TimeSpan arrivalTime = new TimeSpan(0,0,0,0,200);
         public static TimeSpan overTime = new TimeSpan(0,0,0,2);
 
         public Station(int platforms, int trains, int entryTracks)
         {
+            Random random = new Random();
             for (int i = 0; i < 1; i++)
             {
                 Junctions.Add(new Junction(entryTracks)); 
@@ -32,7 +33,16 @@ namespace Projekt2.Models
             }
             for (int i = 0; i < trains; i++)
             {
-                Trains.Add(new Train());
+                while (true)
+                {
+                    Junction junction = Junctions.ElementAt(random.Next(0, Junctions.Count));
+                    Track track = junction.EntryTracks.ElementAt(random.Next(0, junction.EntryTracks.Count));
+                    if (track.IsEmpty)
+                    {
+                        Trains.Add(new Train(this, track));
+                        break;
+                    }
+                }
             }
             stationManager = new Thread(StationManaging);
             trainManager = new Thread(GenerateTrain);
@@ -43,23 +53,11 @@ namespace Projekt2.Models
             trainManager.Start();
             foreach (var train in Trains)
             {
-                //trainThreads.Add(new Thread(train.Run));
-            }
-
-            while (Go)
-            {
-                foreach (var train in Trains)
-                {
-                    train.GoToPlatformTrack();
-                    train.StayOnTrack();
-                    train.GoToExitTrack();
-                } 
-
+                trainThreads.Add(new Thread(train.Run));
             }
         }
         public void EndSimulation()
         {
-            Go = false;
             trainManager.Abort();
             stationManager.Abort();
             foreach (var train in trainThreads)
@@ -86,8 +84,9 @@ namespace Projekt2.Models
 
             Random random = new Random();
             Track trackToGenerateTrain = emptyTracks.ElementAt(random.Next(0, emptyTracks.Count));
-            Trains.Add(new Train());
-            //trainThreads.Add(new Thread(train.Run));
+            Train train = new Train(this, trackToGenerateTrain); 
+            Trains.Add(train);
+            trainThreads.Add(new Thread(train.Run));
             foreach (var track in emptyTracks)
             {
                 track.TrackMutex.ReleaseMutex(); 

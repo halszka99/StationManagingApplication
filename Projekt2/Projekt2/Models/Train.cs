@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Projekt2.Models
@@ -21,7 +22,20 @@ namespace Projekt2.Models
             this.DestinationPlatform = platform;
             this.ExitTrack = exit;
             this.WaitTime = waitTime;
-            this.CurrentTime = DateTime.Now();
+            this.CurrentTime = DateTime.Now;
+        }
+        public Train(Station station, Track entry)
+        {
+            Random random = new Random(); 
+            this.Junctions = station.Junctions;
+            this.CurrentTrack = entry;
+            this.DestinationPlatform = station.Platforms.ElementAt(random.Next(0, station.Platforms.Count));
+            Junction junction = Junctions.ElementAt(random.Next(0, Junctions.Count));
+            this.ExitTrack = junction.EntryTracks.ElementAt(random.Next(0, junction.EntryTracks.Count));
+            this.WaitTime = new TimeSpan(0,0,0,0,random.Next(0, Station.maxStayTime));
+            this.CurrentTime = DateTime.Now;
+
+
         }
         public void Run()
         {
@@ -40,9 +54,9 @@ namespace Projekt2.Models
         public void GoToPlatformTrack()
         {
             Track platformTrack;
-            while((platformTrack = DestinationPlatform.tryReserve()) == null);
+            while((platformTrack = DestinationPlatform.TryReserve()) == null);
 
-            Junction parentJunction = getParentJunction(CurrentTrack);
+            Junction parentJunction = GetParentJunction(CurrentTrack);
             
             parentJunction.Reserve();
             
@@ -64,7 +78,7 @@ namespace Projekt2.Models
             // tu wjeżdzać na track i wykorzystamy tu mutexa tracku do wyjazdu
             ExitTrack.Reserve();
 
-            Junction parentJunction = getParentJunction(ExitTrack);
+            Junction parentJunction = GetParentJunction(ExitTrack);
             
             parentJunction.Reserve();
             
@@ -85,12 +99,7 @@ namespace Projekt2.Models
         {
             // tu manewr wyjazdowy zrobimy
         }
-        public void Kill()
-        {
-            // tu zabijemy wątek pociągu
-        }
-
-        Junction getParentJunction(Track track)
+        Junction GetParentJunction(Track track)
         {
             foreach (var j in Junctions)
                 if(j.ContainsTrack(track))
