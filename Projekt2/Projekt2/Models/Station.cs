@@ -14,34 +14,93 @@ namespace Projekt2.Models
         public List<Train> Trains { get; set; }
         public bool Go { get; set; }
 
-        public Thread stationManager;
+        public Thread stationManager; 
+        public Thread trainManager; 
         public List<Thread> trainThreads = new List<Thread>();
+
         public TimeSpan arrivalTime = new TimeSpan(0,0,0,0,200);
         public TimeSpan overTime = new TimeSpan(0,0,0,2);
 
-        public Station(int platforms, int tracks, int trains, int entryTracks)
+        public Station(int platforms, int trains, int entryTracks)
         {
-            // tu będziemy tworzyć najpierw  junctiony 
-            // potem tracki 
-            // potem platformy 
-            // a trainy to na początku symulacji postawimy na trackach wiec nie tu
-            // station magnager też do stworzenia 
+            for (int i = 0; i < 1; i++)
+            {
+                Junctions.Add(new Junction(entryTracks)); 
+            }
+            for (int i = 0; i < platforms; i++)
+            {
+                Platforms.Add(new Platform());
+            }
+            for (int i = 0; i < trains; i++)
+            {
+                Trains.Add(new Train());
+            }
+            stationManager = new Thread(StationManaging);
+            trainManager = new Thread(GenerateTrain);
         }
         public void StartSimulation()
         {
-            // no i tu zaczynamy symulacje czyli stawaimy pociągi na torach i lista wątków pociągów
+            stationManager.Start();
+            trainManager.Start();
+            foreach (var train in Trains)
+            {
+                //trainThreads.Add(new Thread(train.Run));
+            }
+
+            while (Go)
+            {
+                foreach (var train in Trains)
+                {
+                    train.GoToPlatformTrack();
+                    train.StayOnTrack();
+                    train.GoToExitTrack();
+                } 
+
+            }
         }
         public void EndSimulation()
         {
-            // tu kończymy symulacje, wszystkie wątki killujemy itd. 
+            Go = false;
+            trainManager.Abort();
+            stationManager.Abort();
+            foreach (var train in trainThreads)
+            {
+                train.Abort();
+            }
         }
         public void GenerateTrain()
         {
-            // tu generujemy losowo jakiś pociąg na torze jeśli jest wolne więcej niż 1
+            List<Track> emptyTracks = new List<Track>();
+            foreach (var junction in Junctions)
+            {
+                foreach (var track in junction.EntryTracks)
+                {
+                    if (track.TrackMutex.WaitOne(10))
+                    {
+                        if (track.IsEmpty)
+                            emptyTracks.Add(track);
+                        else
+                            track.TrackMutex.ReleaseMutex();
+                    }
+                }
+            }
+
+            Random random = new Random();
+            Track trackToGenerateTrain = emptyTracks.ElementAt(random.Next(0, emptyTracks.Count));
+            Trains.Add(new Train());
+            //trainThreads.Add(new Thread(train.Run));
+            foreach (var track in emptyTracks)
+            {
+                track.TrackMutex.ReleaseMutex(); 
+            }
         }
         public void StationManaging()
         {
-            // tu generujemy losowo jakiś pociąg na torze jeśli jest wolne więcej niż 1
+            foreach (var train in Trains)
+            {
+                if (DateTime.Now.Subtract(train.CurrentTime) - train.WaitTime > overTime)
+                    train.Maneuver(); 
+            }
         }
     }
 }

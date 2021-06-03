@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Projekt2; 
 
 namespace Projekt2.Models
 {
@@ -14,8 +15,26 @@ namespace Projekt2.Models
         
         public Platform()
         {
-            // no i tu byśmy przypisaywali tylko który jest dolny i który górny
+            TrackDown = new Track();
+            TrackTop = new Track(); 
         }
-
+        public Track TryReserve()
+        {
+            if (TrackDown.IsEmpty)
+            {
+                TrackDown.Reserve();
+                return TrackDown; 
+            }
+            if (TrackTop.IsEmpty)
+            {
+                TrackTop.Reserve();
+                return TrackTop;
+            }
+            return null; 
+        }
+        public void Free(Track track)
+        {
+            track.Free(); 
+        }
     }
 }
