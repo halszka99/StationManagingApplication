@@ -8,7 +8,7 @@ namespace Projekt2.Models
 {
     class Track
     {
-        public int Id { get; set; }
+        //public int Id { get; set; }
         public bool IsEmpty { get; set; }
     }
 }

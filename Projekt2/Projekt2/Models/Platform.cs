@@ -8,7 +8,7 @@ namespace Projekt2.Models
 {
     class Platform
     {
-        public int Id { get; set; }
+        //public int Id { get; set; }
         public Track TrackTop { get; set; }
         public Track TrackDown { get; set; }
 

@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace Projekt2.Models
 {
-    class EntryTrack: Track
+    class Junction
     {
-
+        public List<Track> EntryTracks { get; set; }
     }
 }
