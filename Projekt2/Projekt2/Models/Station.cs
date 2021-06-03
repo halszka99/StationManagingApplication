@@ -17,9 +17,8 @@ namespace Projekt2.Models
         public Thread stationManager; 
         public Thread trainManager; 
         public List<Thread> trainThreads = new List<Thread>();
-
-        public TimeSpan arrivalTime = new TimeSpan(0,0,0,0,200);
-        public TimeSpan overTime = new TimeSpan(0,0,0,2);
+        public static TimeSpan arrivalTime = new TimeSpan(0,0,0,0,200);
+        public static TimeSpan overTime = new TimeSpan(0,0,0,2);
 
         public Station(int platforms, int trains, int entryTracks)
         {

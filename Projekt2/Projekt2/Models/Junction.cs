@@ -32,5 +32,13 @@ namespace Projekt2.Models
             IsEmpty = true;
             JunctionMutex.ReleaseMutex();
         }
+
+        public Boolean ContainsTrack(Track track)
+        {
+            foreach (var t in EntryTracks)
+                if(t == track)
+                    return true;
+            return false;
+        }
     }
 }
