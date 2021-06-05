@@ -102,9 +102,9 @@ namespace Projekt2.Models
         Junction GetParentJunction(Track track)
         {
             foreach (var j in Junctions)
-                if(j.ContainsTrack(track))
+                if(j.EntryTracks.Contains(track))
                     return j;
-            // TODO: throw error, checked platform track
+            // TODO: throw error, tried to check platform track
             return null;
         }
     }
