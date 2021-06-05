@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace Projekt2.Models
 {
@@ -11,9 +12,11 @@ namespace Projekt2.Models
     {
         public Mutex TrackMutex = new Mutex();
         public bool IsEmpty { get; set; }
-        public Track()
+        public TextBox TextBox { get; set; }
+        public Track(TextBox textBox)
         {
-            IsEmpty = true; 
+            IsEmpty = true;
+            TextBox = textBox;
         }
         public void Reserve()
         {
@@ -21,12 +24,14 @@ namespace Projekt2.Models
             if (IsEmpty)
                 IsEmpty = false;
             TrackMutex.ReleaseMutex();
+            TextBox.Text = "Reserved";
         }
         public void Free()
         {
             TrackMutex.WaitOne();
             IsEmpty = true;
             TrackMutex.ReleaseMutex();
+            TextBox.Text = "Free";
         }
     }
 }

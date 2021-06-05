@@ -48,6 +48,7 @@ namespace Projekt2.Models
 
         public void ArriveToStation()
         {
+            CurrentTrack.TextBox.Text = "Train"; 
             Thread.Sleep(Station.arrivalTime);
         }
 
@@ -62,9 +63,9 @@ namespace Projekt2.Models
             
             //TODO delay on junction crossing
             Track temp = CurrentTrack;
-
+            CurrentTrack.TextBox.Text = "Free";
             CurrentTrack = platformTrack;
-
+            CurrentTrack.TextBox.Text = "Train";
             parentJunction.Free();
             temp.Free();
 
@@ -84,8 +85,9 @@ namespace Projekt2.Models
             
             //TODO delay on junction crossing
             Track temp = CurrentTrack;
-
+            CurrentTrack.TextBox.Text = "Free"; 
             CurrentTrack = ExitTrack;
+            CurrentTrack.TextBox.Text = "Train"; 
 
             parentJunction.Free();
             temp.Free();

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace Projekt2.Models
 {
@@ -20,18 +21,34 @@ namespace Projekt2.Models
         public static TimeSpan arrivalTime = new TimeSpan(0,0,0,0,200);
         public static TimeSpan overTime = new TimeSpan(0,0,0,2);
 
-        public Station(int platforms, int trains, int entryTracks)
+        public Form1 MyForm;
+
+        public Station(Form1 form)
+        {
+            this.MyForm = form;
+            var junctions = this.MyForm.JunctionTextBoxes(); 
+            var platforms = this.MyForm.PlatformTracksTextBoxes(); 
+            var entryTracksLeft = this.MyForm.LeftEntryTracksTextBoxes();
+            var entryTracksRight = this.MyForm.RightEntryTracksTextBoxes();
+            Platforms = new List<Platform>();
+            Junctions = new List<Junction>();
+            Trains = new List<Train>(); 
+
+            Junctions.Add(new Junction(junctions[0], entryTracksLeft));
+
+            Junctions.Add(new Junction(junctions[1], entryTracksRight));
+            for (int i = 0; i < platforms.Count / 2; i++)
+            {
+                Platforms.Add(new Platform(platforms));
+            }
+
+            stationManager = new Thread(StationManaging);
+            trainManager = new Thread(GenerateTrain);
+        }
+        public void StartSimulation()
         {
             Random random = new Random();
-            for (int i = 0; i < 1; i++)
-            {
-                Junctions.Add(new Junction(entryTracks)); 
-            }
-            for (int i = 0; i < platforms; i++)
-            {
-                Platforms.Add(new Platform());
-            }
-            for (int i = 0; i < trains; i++)
+            for (int i = 0; i < 4; i++)
             {
                 while (true)
                 {
@@ -44,11 +61,7 @@ namespace Projekt2.Models
                     }
                 }
             }
-            stationManager = new Thread(StationManaging);
-            trainManager = new Thread(GenerateTrain);
-        }
-        public void StartSimulation()
-        {
+
             stationManager.Start();
             trainManager.Start();
             foreach (var train in Trains)
@@ -64,9 +77,11 @@ namespace Projekt2.Models
             {
                 train.Abort();
             }
+            MyForm.Ready(); 
         }
         public void GenerateTrain()
         {
+            Thread.Sleep(300);
             List<Track> emptyTracks = new List<Track>();
             foreach (var junction in Junctions)
             {
@@ -83,10 +98,14 @@ namespace Projekt2.Models
             }
 
             Random random = new Random();
-            Track trackToGenerateTrain = emptyTracks.ElementAt(random.Next(0, emptyTracks.Count));
-            Train train = new Train(this, trackToGenerateTrain); 
-            Trains.Add(train);
-            trainThreads.Add(new Thread(train.Run));
+            if (emptyTracks.Count > 1)
+            {
+                Track trackToGenerateTrain = emptyTracks.ElementAt(random.Next(0, emptyTracks.Count));
+                Train train = new Train(this, trackToGenerateTrain);
+                Trains.Add(train);
+                trainThreads.Add(new Thread(train.Run));
+            }
+
             foreach (var track in emptyTracks)
             {
                 track.TrackMutex.ReleaseMutex(); 
