@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace Projekt2.Models
 {
@@ -11,26 +12,32 @@ namespace Projekt2.Models
     {
         public List<Track> EntryTracks { get; set; }
         public bool IsEmpty { get; set; }
+        public TextBox TextBox { get; set; }
         public Mutex JunctionMutex = new Mutex();
-        public Junction(int entryTracks)
+        public Junction(TextBox junction, List<TextBox> tracks)
         {
-            for (int i = 0; i < entryTracks; i++)
+            EntryTracks = new List<Track>();
+
+            for (int i = 0; i < tracks.Count; i++)
             {
-                EntryTracks.Add(new Track()); 
+                EntryTracks.Add(new Track(tracks[i])); 
             }
+            TextBox = junction;
         }
         public void Reserve()
         {
             JunctionMutex.WaitOne(); 
             if(IsEmpty)
                 IsEmpty= false;
-            JunctionMutex.ReleaseMutex(); 
+            JunctionMutex.ReleaseMutex();
+            TextBox.Text = "Reserved";
         }
         public void Free()
         {
             JunctionMutex.WaitOne();
             IsEmpty = true;
             JunctionMutex.ReleaseMutex();
+            TextBox.Text = "Free";
         }
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 using Projekt2; 
 
 namespace Projekt2.Models
@@ -13,10 +14,10 @@ namespace Projekt2.Models
         public Track TrackDown { get; set; }
         public List<Train> TrainsQueue { get; set; }
         
-        public Platform()
+        public Platform(List<TextBox> textBoxes)
         {
-            TrackDown = new Track();
-            TrackTop = new Track(); 
+            TrackTop = new Track(textBoxes[0]); 
+            TrackDown = new Track(textBoxes[1]);
         }
         public Track TryReserve()
         {
@@ -34,7 +35,8 @@ namespace Projekt2.Models
         }
         public void Free(Track track)
         {
-            track.Free(); 
+            track.Free();
+            track.TextBox.Text = "Free";
         }
     }
 }

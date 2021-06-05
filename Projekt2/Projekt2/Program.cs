@@ -15,7 +15,6 @@ namespace Projekt2
         [STAThread]
         static void Main()
         {
-            //Station station = new Station(2,4,4); 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new Form1());
