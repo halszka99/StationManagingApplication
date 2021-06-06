@@ -9,22 +9,14 @@ namespace Projekt2.Models
 {
     class Train
     {
+        public Int32 Id  { get; set; }
         List<Junction> Junctions;
         public Track CurrentTrack { get; set; }
         public Track ExitTrack { get; set; }
         public Platform DestinationPlatform { get; set; }
         public TimeSpan WaitTime { get; set; }
         public DateTime CurrentTime { get; set; }
-        public Train(List<Junction> junctions, Track entry, Platform platform, Track exit, TimeSpan waitTime)
-        {
-            this.Junctions = junctions;
-            this.CurrentTrack = entry;
-            this.DestinationPlatform = platform;
-            this.ExitTrack = exit;
-            this.WaitTime = waitTime;
-            this.CurrentTime = DateTime.Now;
-        }
-        public Train(Station station, Track entry)
+        public Train(Station station, Track entry, Int32 id)
         {
             Random random = new Random(); 
             this.Junctions = station.Junctions;
@@ -35,7 +27,7 @@ namespace Projekt2.Models
             this.ExitTrack = junction.EntryTracks.ElementAt(random.Next(0, junction.EntryTracks.Count));
             this.WaitTime = new TimeSpan(0,0,0,0,random.Next(0, Station.maxStayTime));
             this.CurrentTime = DateTime.Now;
-
+            this.Id = id;
 
         }
         public void Run()

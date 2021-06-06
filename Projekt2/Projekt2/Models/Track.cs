@@ -10,13 +10,15 @@ namespace Projekt2.Models
 {
     class Track
     {
+        public String Id  { get; set; }
         public Mutex TrackMutex = new Mutex();
         public bool IsEmpty { get; set; }
         public TextBox TextBox { get; set; }
-        public Track(TextBox textBox)
+        public Track(TextBox textBox, String id)
         {
             IsEmpty = true;
             TextBox = textBox;
+            Id = id;
         }
         public void Reserve()
         {
