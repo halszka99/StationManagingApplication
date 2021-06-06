@@ -46,7 +46,7 @@ namespace Projekt2.Models
                     platforms[2 * i],
                     platforms[2 * i + 1]
                 };
-                Platforms.Add(new Platform(temp));
+                Platforms.Add(new Platform(temp,i+1));
 
             }
             Go = false; 
@@ -182,13 +182,42 @@ namespace Projekt2.Models
         }
         public void StationManaging()
         {
-
-            foreach (var train in Trains)
-            {
+           foreach (var train in Trains)
+           {
                 if (DateTime.Now.Subtract(train.CurrentTime) - train.WaitTime > overTime)
-                    train.Maneuver();
+                    train.Maneuver(); 
+           }
+        }
+        public Track GetEmptyPeronTrack()
+        {
+            foreach (var platform in Platforms)
+            {
+                if(platform.TrackTop.IsEmpty)
+                    return platform.TrackTop;
+                if(platform.TrackDown.IsEmpty)
+                    return platform.TrackDown;
             }
-            
+            return null;
+        }
+
+        public Track GetEmptyExitTrack()
+        {
+            Track ret;
+            foreach (var j in Junctions)
+            {
+                ret = j.EntryTracks.Find(t => t.IsEmpty);
+                if(ret != null)
+                    return ret;
+            }
+            return null;
+        }
+        public Junction GetParentJunction(Track track)
+        {
+            foreach (var j in Junctions)
+                if(j.EntryTracks.Contains(track))
+                    return j;
+            // TODO: throw error, tried to check platform track
+            return null;
         }
     }
 }

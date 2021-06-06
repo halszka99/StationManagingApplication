@@ -10,7 +10,7 @@ namespace Projekt2.Models
     class Train
     {
         public Int32 Id  { get; set; }
-        List<Junction> Junctions;
+        Station Station;
         public Track CurrentTrack { get; set; }
         public Track ExitTrack { get; set; }
         public Platform DestinationPlatform { get; set; }
@@ -19,11 +19,11 @@ namespace Projekt2.Models
         public Train(Station station, Track entry, Int32 id)
         {
             Random random = new Random(); 
-            this.Junctions = station.Junctions;
+            this.Station = station;
             this.CurrentTrack = entry;
             CurrentTrack.Reserve(); 
             this.DestinationPlatform = station.Platforms.ElementAt(random.Next(0, station.Platforms.Count));
-            Junction junction = Junctions.ElementAt(random.Next(0, Junctions.Count));
+            Junction junction = Station.Junctions.ElementAt(random.Next(0, Station.Junctions.Count));
             this.ExitTrack = junction.EntryTracks.ElementAt(random.Next(0, junction.EntryTracks.Count));
             this.WaitTime = new TimeSpan(0,0,0,0,random.Next(0, Station.maxStayTime));
             this.CurrentTime = DateTime.Now;
@@ -49,7 +49,7 @@ namespace Projekt2.Models
             Track platformTrack;
             while((platformTrack = DestinationPlatform.TryReserve()) == null);
 
-            Junction parentJunction = GetParentJunction(CurrentTrack);
+            Junction parentJunction = Station.GetParentJunction(CurrentTrack);
             
             parentJunction.Reserve();
             
@@ -69,7 +69,7 @@ namespace Projekt2.Models
             // tu wjeżdzać na track i wykorzystamy tu mutexa tracku do wyjazdu
             ExitTrack.Reserve();
 
-            Junction parentJunction = GetParentJunction(ExitTrack);
+            Junction parentJunction = Station.GetParentJunction(ExitTrack);
             
             parentJunction.Reserve();
             
@@ -88,14 +88,6 @@ namespace Projekt2.Models
         public void Maneuver()
         {
             // tu manewr wyjazdowy zrobimy
-        }
-        Junction GetParentJunction(Track track)
-        {
-            foreach (var j in Junctions)
-                if(j.EntryTracks.Contains(track))
-                    return j;
-            // TODO: throw error, tried to check platform track
-            return null;
         }
     }
 }
