@@ -13,24 +13,24 @@ namespace Projekt2.Models
         public List<Platform> Platforms { get; set; }
         public List<Junction> Junctions { get; set; }
         public List<Train> Trains { get; set; }
-
+        public bool Go { get; set; }
         public Thread stationManager; 
         public Thread trainManager; 
         public Thread simulationManager; 
         public List<Thread> trainThreads = new List<Thread>();
-        public static int maxStayTime = 300;
-        public static TimeSpan arrivalTime = new TimeSpan(0,0,0,0,200);
+        public static int maxStayTime = 900;
+        public static TimeSpan arrivalTime = new TimeSpan(0,0,0,0,600);
         public static TimeSpan overTime = new TimeSpan(0,0,0,2);
 
         public Form1 MyForm;
 
         public Station(Form1 form)
         {
-            this.MyForm = form;
-            var junctions = this.MyForm.JunctionTextBoxes(); 
-            var platforms = this.MyForm.PlatformTracksTextBoxes(); 
-            var entryTracksLeft = this.MyForm.LeftEntryTracksTextBoxes();
-            var entryTracksRight = this.MyForm.RightEntryTracksTextBoxes();
+            MyForm = form;
+            var junctions = MyForm.JunctionTextBoxes(); 
+            var platforms = MyForm.PlatformTracksTextBoxes(); 
+            var entryTracksLeft = MyForm.LeftEntryTracksTextBoxes();
+            var entryTracksRight = MyForm.RightEntryTracksTextBoxes();
 
             Platforms = new List<Platform>();
             Junctions = new List<Junction>();
@@ -40,13 +40,14 @@ namespace Projekt2.Models
             Junctions.Add(new Junction(junctions[1], entryTracksRight));
             for (int i = 0; i < platforms.Count / 2; i++)
             {
-                List <TextBox> temp = new List<TextBox>();
-
-                temp.Add(platforms[2*i]);
-                temp.Add(platforms[2*i+1]);
+                List<TextBox> temp = new List<TextBox>
+                {
+                    platforms[2 * i],
+                    platforms[2 * i + 1]
+                };
                 Platforms.Add(new Platform(temp));
             }
-
+            Go = false; 
             stationManager = new Thread(StationManaging);
             trainManager = new Thread(GenerateTrain);
             simulationManager = new Thread(SimulationManaging);
@@ -54,100 +55,59 @@ namespace Projekt2.Models
 
         private void SimulationManaging()
         {
-            while (true)
+            while (Go)
             {
                 foreach (var junction in Junctions)
                 {
                     if (junction.IsEmpty)
-                    {
-                        junction.TextBox.Invoke((Action)delegate
-                        {
-
-                            junction.TextBox.Text = "Free";
-
-                        });
-                    }
+                        SetTextBox(junction.TextBox, "Free");
                     else
-                    {
-                        junction.TextBox.Invoke((Action)delegate
-                        {
+                        SetTextBox(junction.TextBox, "Train");
 
-                            junction.TextBox.Text = "Train";
-
-                        });
-                    }
                     foreach (var track in junction.EntryTracks)
                     {
                         if (track.IsEmpty)
-                        {
-                            track.TextBox.Invoke((Action)delegate
-                            {
-
-                                track.TextBox.Text = "Free";
-
-                            });
-                        }
+                            SetTextBox(track.TextBox, "Free");
                         else
-                        {
-                            track.TextBox.Invoke((Action)delegate
-                            {
-
-                                track.TextBox.Text = "Train";
-
-                            });
-                        }
+                            SetTextBox(track.TextBox, "Train");
                     }
                 }
+
                 foreach (var platform in Platforms)
                 {
                     if (platform.TrackDown.IsEmpty)
-                    {
-                        platform.TrackDown.TextBox.Invoke((Action)delegate
-                        {
-
-                            platform.TrackDown.TextBox.Text = "Free";
-
-                        });
-                    }
+                        SetTextBox(platform.TrackDown.TextBox, "Free");
                     else
-                    {
-                        platform.TrackDown.TextBox.Invoke((Action)delegate
-                        {
-
-                            platform.TrackDown.TextBox.Text = "Train";
-
-                        });
-                    }
+                        SetTextBox(platform.TrackDown.TextBox, "Train");
 
                     if (platform.TrackTop.IsEmpty)
-                    {
-                        platform.TrackTop.TextBox.Invoke((Action)delegate
-                        {
-
-                            platform.TrackTop.TextBox.Text = "Free";
-
-                        });
-                    }
+                        SetTextBox(platform.TrackTop.TextBox, "Free");
                     else
-                    {
-                        platform.TrackTop.TextBox.Invoke((Action)delegate
-                        {
-
-                            platform.TrackTop.TextBox.Text = "Train";
-
-                        });
-                    };
+                        SetTextBox(platform.TrackTop.TextBox, "Train");
                 }
             }
         }
+
+        private void SetTextBox(TextBox textBox, string text)
+        {
+            textBox.Invoke((Action)delegate
+            {
+
+                textBox.Text = text;
+
+            });
+        }
+
         public void StartSimulation()
         {
+            Go = true; 
             stationManager.Start();
             trainManager.Start();
             simulationManager.Start(); 
         }
         public void EndSimulation()
         {
+            Go = false; 
             trainManager.Abort();
             stationManager.Abort();
             simulationManager.Abort();
@@ -158,7 +118,7 @@ namespace Projekt2.Models
         }
         public void GenerateTrain()
         {
-            while (true)
+            while (Go)
             {
                 Thread.Sleep(100);
                 List<Track> emptyTracks = new List<Track>();
@@ -183,7 +143,7 @@ namespace Projekt2.Models
                     Train train = new Train(this, trackToGenerateTrain);
                     Trains.Add(train);
                     trainThreads.Add(new Thread(train.Run));
-                    trainThreads[trainThreads.Count - 1].Start();
+                    trainThreads.Last().Start(); 
                 }
 
                 foreach (var track in emptyTracks)
@@ -194,11 +154,13 @@ namespace Projekt2.Models
         }
         public void StationManaging()
         {
+
             foreach (var train in Trains)
             {
                 if (DateTime.Now.Subtract(train.CurrentTime) - train.WaitTime > overTime)
-                    train.Maneuver(); 
+                    train.Maneuver();
             }
+            
         }
     }
 }
