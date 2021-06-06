@@ -24,14 +24,12 @@ namespace Projekt2.Models
             if (IsEmpty)
                 IsEmpty = false;
             TrackMutex.ReleaseMutex();
-            TextBox.Text = "Reserved";
         }
         public void Free()
         {
             TrackMutex.WaitOne();
             IsEmpty = true;
             TrackMutex.ReleaseMutex();
-            TextBox.Text = "Free";
         }
     }
 }

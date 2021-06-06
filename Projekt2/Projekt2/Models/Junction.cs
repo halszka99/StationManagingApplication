@@ -30,14 +30,12 @@ namespace Projekt2.Models
             if(IsEmpty)
                 IsEmpty= false;
             JunctionMutex.ReleaseMutex();
-            TextBox.Text = "Reserved";
         }
         public void Free()
         {
             JunctionMutex.WaitOne();
             IsEmpty = true;
             JunctionMutex.ReleaseMutex();
-            TextBox.Text = "Free";
         }
     }
 }

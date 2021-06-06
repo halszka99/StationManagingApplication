@@ -36,7 +36,6 @@ namespace Projekt2.Models
         public void Free(Track track)
         {
             track.Free();
-            track.TextBox.Text = "Free";
         }
     }
 }
