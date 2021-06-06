@@ -29,6 +29,7 @@ namespace Projekt2.Models
             Random random = new Random(); 
             this.Junctions = station.Junctions;
             this.CurrentTrack = entry;
+            CurrentTrack.Reserve(); 
             this.DestinationPlatform = station.Platforms.ElementAt(random.Next(0, station.Platforms.Count));
             Junction junction = Junctions.ElementAt(random.Next(0, Junctions.Count));
             this.ExitTrack = junction.EntryTracks.ElementAt(random.Next(0, junction.EntryTracks.Count));

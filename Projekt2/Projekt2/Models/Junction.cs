@@ -23,6 +23,7 @@ namespace Projekt2.Models
                 EntryTracks.Add(new Track(tracks[i])); 
             }
             TextBox = junction;
+            IsEmpty = true; 
         }
         public void Reserve()
         {
