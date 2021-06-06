@@ -16,6 +16,7 @@ namespace Projekt2.Models
         public Platform DestinationPlatform { get; set; }
         public TimeSpan WaitTime { get; set; }
         public DateTime CurrentTime { get; set; }
+        public Thread Thread;
         public Train(Station station, Track entry, Int32 id)
         {
             Random random = new Random(); 
@@ -28,7 +29,8 @@ namespace Projekt2.Models
             this.WaitTime = new TimeSpan(0,0,0,0,random.Next(0, Station.maxStayTime));
             this.CurrentTime = DateTime.Now;
             this.Id = id;
-
+            this.Thread = new Thread(Run);
+            Thread.Start();
         }
         public void Run()
         {
@@ -84,6 +86,8 @@ namespace Projekt2.Models
         public void DepartFromStation()
         {
             Thread.Sleep(Station.arrivalTime);
+            CurrentTrack.Free();
+            Station.Trains.Remove(this);
         }
         public void Maneuver()
         {
