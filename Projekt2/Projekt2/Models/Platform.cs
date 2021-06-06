@@ -10,14 +10,15 @@ namespace Projekt2.Models
 {
     class Platform
     {
+        public Int32 Id { get; set; }
         public Track TrackTop { get; set; }
         public Track TrackDown { get; set; }
         public List<Train> TrainsQueue { get; set; }
         
-        public Platform(List<TextBox> textBoxes)
+        public Platform(List<TextBox> textBoxes, Int32 id)
         {
-            TrackTop = new Track(textBoxes[0]); 
-            TrackDown = new Track(textBoxes[1]);
+            TrackTop = new Track(textBoxes[0],id.ToString()); 
+            TrackDown = new Track(textBoxes[1],id.ToString());
         }
         public Track TryReserve()
         {

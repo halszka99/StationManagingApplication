@@ -14,13 +14,13 @@ namespace Projekt2.Models
         public bool IsEmpty { get; set; }
         public TextBox TextBox { get; set; }
         public Mutex JunctionMutex = new Mutex();
-        public Junction(TextBox junction, List<TextBox> tracks)
+        public Junction(TextBox junction, List<TextBox> tracks, string side)
         {
             EntryTracks = new List<Track>();
 
             for (int i = 0; i < tracks.Count; i++)
             {
-                EntryTracks.Add(new Track(tracks[i])); 
+                EntryTracks.Add(new Track(tracks[i], (i+1)+side)); 
             }
             TextBox = junction;
             IsEmpty = true; 

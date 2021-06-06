@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,6 +10,7 @@ namespace Projekt2.Models
 {
     class Station
     {
+        Int32 TrainId = 1;
         public List<Platform> Platforms { get; set; }
         public List<Junction> Junctions { get; set; }
         public List<Train> Trains { get; set; }
@@ -36,8 +37,8 @@ namespace Projekt2.Models
             Junctions = new List<Junction>();
             Trains = new List<Train>();
 
-            Junctions.Add(new Junction(junctions[0], entryTracksLeft));
-            Junctions.Add(new Junction(junctions[1], entryTracksRight));
+            Junctions.Add(new Junction(junctions[0], entryTracksLeft, "L"));
+            Junctions.Add(new Junction(junctions[1], entryTracksRight, "R"));
             for (int i = 0; i < platforms.Count / 2; i++)
             {
                 List<TextBox> temp = new List<TextBox>
@@ -46,6 +47,7 @@ namespace Projekt2.Models
                     platforms[2 * i + 1]
                 };
                 Platforms.Add(new Platform(temp));
+
             }
             Go = false; 
             stationManager = new Thread(StationManaging);
@@ -53,12 +55,30 @@ namespace Projekt2.Models
             simulationManager = new Thread(SimulationManaging);
         }
 
+        void UpdateTrackLabel(Track track)
+        {
+            track.TextBox.Invoke((Action)delegate
+            {
+                if (track.IsEmpty)
+                    track.TextBox.Text = track.Id + " Free";
+                else
+                {
+                    Train tr = Trains.Find(t => t.CurrentTrack == track);
+                    if(tr != null)
+                        track.TextBox.Text = track.Id + " T" + tr.Id;
+                    else
+                        track.TextBox.Text = track.Id + " Reserved";
+                }
+
+            });
+        }
         private void SimulationManaging()
         {
             while (Go)
             {
                 foreach (var junction in Junctions)
                 {
+
                     if (junction.IsEmpty)
                         SetTextBox(junction.TextBox, "Free");
                     else
@@ -71,10 +91,15 @@ namespace Projekt2.Models
                         else
                             SetTextBox(track.TextBox, "Train");
                     }
+
+                    
+                    junction.EntryTracks.ForEach(track => UpdateTrackLabel(track));
+
                 }
 
                 foreach (var platform in Platforms)
                 {
+
                     if (platform.TrackDown.IsEmpty)
                         SetTextBox(platform.TrackDown.TextBox, "Free");
                     else
@@ -84,6 +109,9 @@ namespace Projekt2.Models
                         SetTextBox(platform.TrackTop.TextBox, "Free");
                     else
                         SetTextBox(platform.TrackTop.TextBox, "Train");
+
+                    UpdateTrackLabel(platform.TrackDown);
+                    UpdateTrackLabel(platform.TrackTop);
                 }
             }
         }
@@ -140,7 +168,7 @@ namespace Projekt2.Models
                 if (emptyTracks.Count > 1)
                 {
                     Track trackToGenerateTrain = emptyTracks.ElementAt(random.Next(0, emptyTracks.Count));
-                    Train train = new Train(this, trackToGenerateTrain);
+                    Train train = new Train(this, trackToGenerateTrain,TrainId++);
                     Trains.Add(train);
                     trainThreads.Add(new Thread(train.Run));
                     trainThreads.Last().Start(); 
