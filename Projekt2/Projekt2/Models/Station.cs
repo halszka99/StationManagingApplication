@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -46,6 +46,7 @@ namespace Projekt2.Models
                 temp.Add(platforms[2*i+1]);
                 Platforms.Add(new Platform(temp));
             }
+
             stationManager = new Thread(StationManaging);
             trainManager = new Thread(GenerateTrain);
             simulationManager = new Thread(SimulationManaging);
@@ -139,7 +140,6 @@ namespace Projekt2.Models
                 }
             }
         }
-
         public void StartSimulation()
         {
             stationManager.Start();
