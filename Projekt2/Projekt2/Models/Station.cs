@@ -35,8 +35,6 @@ namespace Projekt2.Models
             Platforms = new List<Platform>();
             Junctions = new List<Junction>();
             Trains = new List<Train>();
-            Random random = new Random();
-
 
             Junctions.Add(new Junction(junctions[0], entryTracksLeft));
             Junctions.Add(new Junction(junctions[1], entryTracksRight));
@@ -48,109 +46,97 @@ namespace Projekt2.Models
                 temp.Add(platforms[2*i+1]);
                 Platforms.Add(new Platform(temp));
             }
-            for (int i = 0; i < 4; i++)
-            {
-                while (true)
-                {
-                    Junction junction = Junctions.ElementAt(random.Next(0, Junctions.Count));
-                    Track track = junction.EntryTracks.ElementAt(random.Next(0, junction.EntryTracks.Count));
-                    if (track.IsEmpty)
-                    {
-                        Trains.Add(new Train(this, track));
-                        break;
-                    }
-                }
-            }
             stationManager = new Thread(StationManaging);
             trainManager = new Thread(GenerateTrain);
             simulationManager = new Thread(SimulationManaging);
-
         }
 
         private void SimulationManaging()
         {
-
-            foreach (var junction in Junctions)
+            while (true)
             {
-                if (junction.IsEmpty)
+                foreach (var junction in Junctions)
                 {
-                    junction.TextBox.Invoke((Action)delegate
+                    if (junction.IsEmpty)
                     {
-
-                        junction.TextBox.Text = "Empty";
-
-                    });
-                }
-                else
-                {
-                    junction.TextBox.Invoke((Action)delegate
-                    {
-
-                        junction.TextBox.Text = "Train";
-
-                    });
-                }
-                foreach (var track in junction.EntryTracks)
-                {
-                    if (track.IsEmpty)
-                    {
-                        track.TextBox.Invoke((Action)delegate
+                        junction.TextBox.Invoke((Action)delegate
                         {
 
-                            track.TextBox.Text = "Empty";
+                            junction.TextBox.Text = "Free";
 
                         });
                     }
                     else
                     {
-                        track.TextBox.Invoke((Action)delegate
+                        junction.TextBox.Invoke((Action)delegate
                         {
 
-                            track.TextBox.Text = "Train";
+                            junction.TextBox.Text = "Train";
 
                         });
                     }
-                }
-            }
-            foreach (var platform in Platforms)
-            {
-                if (platform.TrackDown.IsEmpty)
-                {
-                    platform.TrackDown.TextBox.Invoke((Action)delegate
+                    foreach (var track in junction.EntryTracks)
                     {
+                        if (track.IsEmpty)
+                        {
+                            track.TextBox.Invoke((Action)delegate
+                            {
 
-                        platform.TrackDown.TextBox.Text = "Empty";
+                                track.TextBox.Text = "Free";
 
-                    });
+                            });
+                        }
+                        else
+                        {
+                            track.TextBox.Invoke((Action)delegate
+                            {
+
+                                track.TextBox.Text = "Train";
+
+                            });
+                        }
+                    }
                 }
-                else
+                foreach (var platform in Platforms)
                 {
-                    platform.TrackDown.TextBox.Invoke((Action)delegate
+                    if (platform.TrackDown.IsEmpty)
                     {
+                        platform.TrackDown.TextBox.Invoke((Action)delegate
+                        {
 
-                        platform.TrackDown.TextBox.Text = "Train";
+                            platform.TrackDown.TextBox.Text = "Free";
 
-                    });
+                        });
+                    }
+                    else
+                    {
+                        platform.TrackDown.TextBox.Invoke((Action)delegate
+                        {
+
+                            platform.TrackDown.TextBox.Text = "Train";
+
+                        });
+                    }
+
+                    if (platform.TrackTop.IsEmpty)
+                    {
+                        platform.TrackTop.TextBox.Invoke((Action)delegate
+                        {
+
+                            platform.TrackTop.TextBox.Text = "Free";
+
+                        });
+                    }
+                    else
+                    {
+                        platform.TrackTop.TextBox.Invoke((Action)delegate
+                        {
+
+                            platform.TrackTop.TextBox.Text = "Train";
+
+                        });
+                    };
                 }
-
-                if (platform.TrackTop.IsEmpty)
-                {
-                    platform.TrackTop.TextBox.Invoke((Action)delegate
-                    {
-
-                        platform.TrackTop.TextBox.Text = "Empty";
-
-                    });
-                }
-                else
-                {
-                    platform.TrackTop.TextBox.Invoke((Action)delegate
-                    {
-
-                        platform.TrackTop.TextBox.Text = "Train";
-
-                    });
-                };
             }
         }
 
@@ -159,11 +145,6 @@ namespace Projekt2.Models
             stationManager.Start();
             trainManager.Start();
             simulationManager.Start(); 
-
-            foreach (var train in Trains)
-            {
-                trainThreads.Add(new Thread(train.Run));
-            }
         }
         public void EndSimulation()
         {
@@ -178,34 +159,38 @@ namespace Projekt2.Models
         }
         public void GenerateTrain()
         {
-            Thread.Sleep(300);
-            List<Track> emptyTracks = new List<Track>();
-            foreach (var junction in Junctions)
+            while (true)
             {
-                foreach (var track in junction.EntryTracks)
+                Thread.Sleep(100);
+                List<Track> emptyTracks = new List<Track>();
+                foreach (var junction in Junctions)
                 {
-                    if (track.TrackMutex.WaitOne(10))
+                    foreach (var track in junction.EntryTracks)
                     {
-                        if (track.IsEmpty)
-                            emptyTracks.Add(track);
-                        else
-                            track.TrackMutex.ReleaseMutex();
+                        if (track.TrackMutex.WaitOne(10))
+                        {
+                            if (track.IsEmpty)
+                                emptyTracks.Add(track);
+                            else
+                                track.TrackMutex.ReleaseMutex();
+                        }
                     }
                 }
-            }
 
-            Random random = new Random();
-            if (emptyTracks.Count > 1)
-            {
-                Track trackToGenerateTrain = emptyTracks.ElementAt(random.Next(0, emptyTracks.Count));
-                Train train = new Train(this, trackToGenerateTrain);
-                Trains.Add(train);
-                trainThreads.Add(new Thread(train.Run));
-            }
+                Random random = new Random();
+                if (emptyTracks.Count > 1)
+                {
+                    Track trackToGenerateTrain = emptyTracks.ElementAt(random.Next(0, emptyTracks.Count));
+                    Train train = new Train(this, trackToGenerateTrain);
+                    Trains.Add(train);
+                    trainThreads.Add(new Thread(train.Run));
+                    trainThreads[trainThreads.Count - 1].Start();
+                }
 
-            foreach (var track in emptyTracks)
-            {
-                track.TrackMutex.ReleaseMutex(); 
+                foreach (var track in emptyTracks)
+                {
+                    track.TrackMutex.ReleaseMutex();
+                }
             }
         }
         public void StationManaging()
