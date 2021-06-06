@@ -155,7 +155,6 @@ namespace Projekt2.Models
             {
                 train.Abort();
             }
-            MyForm.Ready(); 
         }
         public void GenerateTrain()
         {

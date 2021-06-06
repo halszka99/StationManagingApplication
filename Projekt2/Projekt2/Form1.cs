@@ -67,24 +67,5 @@ namespace Projekt2
             station.EndSimulation();
             buttonStop.Enabled = false;
         }
-        public void Ready()
-        {
-
-            buttonStart.Enabled = true;
-            textBox1.Text = "Free"; 
-            textBox2.Text = "Free"; 
-            textBox3.Text = "Free"; 
-            textBox4.Text = "Free"; 
-            textBox5.Text = "Free"; 
-            textBox6.Text = "Free"; 
-            textBox7.Text = "Free"; 
-            textBox8.Text = "Free"; 
-            textBox9.Text = "Free"; 
-            textBox10.Text = "Free"; 
-            textBox11.Text = "Free"; 
-            textBox12.Text = "Free"; 
-            textBox13.Text = "Free"; 
-            textBox14.Text = "Free"; 
-        }
     }
 }
