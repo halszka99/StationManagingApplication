@@ -18,8 +18,9 @@ namespace Projekt2.Models
         public Thread stationManager; 
         public Thread trainManager; 
         public Thread simulationManager; 
-        public static int maxStayTime = 900;
-        public static TimeSpan arrivalTime = new TimeSpan(0,0,0,0,600);
+        public static int maxStayTime = 3000;
+        public static TimeSpan junctionTime = new TimeSpan(0,0,0,3,000);
+        public static TimeSpan arrivalTime = new TimeSpan(0,0,0,1,500);
         public static TimeSpan overTime = new TimeSpan(0,0,0,2);
 
         public Form1 MyForm;
@@ -45,7 +46,7 @@ namespace Projekt2.Models
                     platforms[2 * i],
                     platforms[2 * i + 1]
                 };
-                Platforms.Add(new Platform(temp,i+1));
+                Platforms.Add(new Platform(temp,i*2+1));
 
             }
             Go = false; 
@@ -80,8 +81,10 @@ namespace Projekt2.Models
 
                     if (junction.IsEmpty)
                         SetTextBox(junction.TextBox, "Free");
+                    else if (junction.OccupiedBy != null) 
+                        SetTextBox(junction.TextBox, "T"+junction.OccupiedBy.Id);
                     else
-                        SetTextBox(junction.TextBox, "Train");
+                        SetTextBox(junction.TextBox, "Reserved");
 
                     junction.EntryTracks.ForEach(track => UpdateTrackLabel(track));
 

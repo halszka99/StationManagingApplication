@@ -53,9 +53,9 @@ namespace Projekt2.Models
 
             Junction parentJunction = Station.GetParentJunction(CurrentTrack);
             
-            parentJunction.Reserve();
+            parentJunction.Reserve(this);
             
-            //TODO delay on junction crossing
+            Thread.Sleep(Station.junctionTime);
             Track temp = CurrentTrack;
             CurrentTrack = platformTrack;
             parentJunction.Free();
@@ -68,14 +68,13 @@ namespace Projekt2.Models
         }
         public void GoToExitTrack()
         {
-            // tu wjeżdzać na track i wykorzystamy tu mutexa tracku do wyjazdu
             ExitTrack.Reserve();
 
             Junction parentJunction = Station.GetParentJunction(ExitTrack);
             
-            parentJunction.Reserve();
+            parentJunction.Reserve(this);
             
-            //TODO delay on junction crossing
+            Thread.Sleep(Station.junctionTime);
             Track temp = CurrentTrack;
             CurrentTrack = ExitTrack;
 

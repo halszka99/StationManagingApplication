@@ -18,7 +18,7 @@ namespace Projekt2.Models
         public Platform(List<TextBox> textBoxes, Int32 id)
         {
             TrackTop = new Track(textBoxes[0],id.ToString()); 
-            TrackDown = new Track(textBoxes[1],id.ToString());
+            TrackDown = new Track(textBoxes[1],(id+1).ToString());
         }
         public Track TryReserve()
         {

@@ -12,6 +12,7 @@ namespace Projekt2.Models
     {
         public List<Track> EntryTracks { get; set; }
         public bool IsEmpty { get; set; }
+        public Train OccupiedBy { get; set; }
         public TextBox TextBox { get; set; }
         public Mutex JunctionMutex = new Mutex();
         public Junction(TextBox junction, List<TextBox> tracks, string side)
@@ -25,11 +26,14 @@ namespace Projekt2.Models
             TextBox = junction;
             IsEmpty = true; 
         }
-        public void Reserve()
+        public void Reserve(Train train = null)
         {
             JunctionMutex.WaitOne(); 
             if(IsEmpty)
+            {
                 IsEmpty= false;
+                OccupiedBy = train;
+            }
             JunctionMutex.ReleaseMutex();
         }
         public void Free()
