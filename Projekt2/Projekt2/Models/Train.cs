@@ -10,27 +10,28 @@ namespace Projekt2.Models
     class Train
     {
         public Int32 Id  { get; set; }
-        Station Station;
+
+        readonly Station station;
         public Track CurrentTrack { get; set; }
         public Track ExitTrack { get; set; }
         public Platform DestinationPlatform { get; set; }
         public TimeSpan WaitTime { get; set; }
         public DateTime CurrentTime { get; set; }
-        public Thread Thread;
+        public Thread thread;
         public Train(Station station, Track entry, Int32 id)
         {
             Random random = new Random(); 
-            this.Station = station;
-            this.CurrentTrack = entry;
-            CurrentTrack.Reserve(); 
-            this.DestinationPlatform = station.Platforms.ElementAt(random.Next(0, station.Platforms.Count));
-            Junction junction = Station.Junctions.ElementAt(random.Next(0, Station.Junctions.Count));
-            this.ExitTrack = junction.EntryTracks.ElementAt(random.Next(0, junction.EntryTracks.Count));
-            this.WaitTime = new TimeSpan(0,0,0,0,random.Next(0, Station.maxStayTime));
-            this.CurrentTime = DateTime.Now;
-            this.Id = id;
-            this.Thread = new Thread(Run);
-            Thread.Start();
+            this.station = station;
+            CurrentTrack = entry;
+            while(!CurrentTrack.Reserve()); 
+            DestinationPlatform = station.Platforms.ElementAt(random.Next(0, station.Platforms.Count));
+            Junction junction = station.Junctions.ElementAt(random.Next(0, station.Junctions.Count));
+            ExitTrack = junction.EntryTracks.ElementAt(random.Next(0, junction.EntryTracks.Count));
+            WaitTime = new TimeSpan(0,0,0,0,random.Next(0, Station.maxStayTime));
+            CurrentTime = DateTime.Now;
+            Id = id;
+            thread = new Thread(Run);
+            thread.Start();
         }
         public void Run()
         {
@@ -50,10 +51,9 @@ namespace Projekt2.Models
         {
             Track platformTrack;
             while((platformTrack = DestinationPlatform.TryReserve()) == null);
+            Junction parentJunction = station.GetParentJunction(CurrentTrack);
 
-            Junction parentJunction = Station.GetParentJunction(CurrentTrack);
-            
-            parentJunction.Reserve(this);
+            while (!parentJunction.Reserve(this)); 
             
             Thread.Sleep(Station.junctionTime);
             Track temp = CurrentTrack;
@@ -68,13 +68,13 @@ namespace Projekt2.Models
         }
         public void GoToExitTrack()
         {
-            ExitTrack.Reserve();
+            while(!ExitTrack.Reserve());
 
-            Junction parentJunction = Station.GetParentJunction(ExitTrack);
-            
-            parentJunction.Reserve(this);
-            
-            Thread.Sleep(Station.junctionTime);
+            Junction parentJunction = station.GetParentJunction(ExitTrack);
+
+            while (!parentJunction.Reserve(this));
+
+            Thread.Sleep(5000);
             Track temp = CurrentTrack;
             CurrentTrack = ExitTrack;
 
@@ -86,7 +86,8 @@ namespace Projekt2.Models
         {
             Thread.Sleep(Station.arrivalTime);
             CurrentTrack.Free();
-            Station.Trains.Remove(this);
+            station.Trains.Remove(this);
+            thread.Abort(); 
         }
         public void Maneuver()
         {

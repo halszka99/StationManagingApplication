@@ -20,17 +20,23 @@ namespace Projekt2.Models
             TextBox = textBox;
             Id = id;
         }
-        public void Reserve()
+        public bool Reserve()
         {
+            bool reserved = false;
             TrackMutex.WaitOne();
             if (IsEmpty)
+            {
                 IsEmpty = false;
+                reserved = true; 
+            }
             TrackMutex.ReleaseMutex();
+            return reserved; 
         }
         public void Free()
         {
             TrackMutex.WaitOne();
-            IsEmpty = true;
+            if (!IsEmpty)
+                IsEmpty = true;
             TrackMutex.ReleaseMutex();
         }
     }

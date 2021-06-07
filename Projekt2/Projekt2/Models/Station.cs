@@ -18,9 +18,9 @@ namespace Projekt2.Models
         public Thread stationManager; 
         public Thread trainManager; 
         public Thread simulationManager; 
-        public static int maxStayTime = 3000;
-        public static TimeSpan junctionTime = new TimeSpan(0,0,0,3,000);
-        public static TimeSpan arrivalTime = new TimeSpan(0,0,0,1,500);
+        public static int maxStayTime = 5000;
+        public static TimeSpan junctionTime = new TimeSpan(0,0,0,5,0);
+        public static TimeSpan arrivalTime = new TimeSpan(0,0,0,5,0);
         public static TimeSpan overTime = new TimeSpan(0,0,0,2);
 
         public Form1 MyForm;
@@ -124,14 +124,14 @@ namespace Projekt2.Models
             stationManager.Abort();
             simulationManager.Abort();
             foreach (var train in Trains)
-                train.Thread.Abort();
+                train.thread.Abort();
             
         }
         public void GenerateTrain()
         {
             while (Go)
             {
-                Thread.Sleep(100);
+                Thread.Sleep(300);
                 List<Track> emptyTracks = new List<Track>();
                 foreach (var junction in Junctions)
                 {
