@@ -1,4 +1,6 @@
 ﻿
+using System.Windows.Forms;
+
 namespace Projekt2
 {
     partial class Form1
@@ -263,6 +265,7 @@ namespace Projekt2
             this.Name = "Form1";
             this.ShowIcon = false;
             this.Text = "Train Station Simulation";
+            this.FormClosed += new FormClosedEventHandler(Form1_FormClosing);
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
