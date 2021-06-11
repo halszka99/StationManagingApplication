@@ -20,7 +20,7 @@ namespace Projekt2.Models
             TextBox = textBox;
             Id = id;
         }
-        public bool Reserve()
+        public bool TryReserve()
         {
             bool reserved = false;
             TrackMutex.WaitOne();

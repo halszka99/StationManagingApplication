@@ -22,16 +22,10 @@ namespace Projekt2.Models
         }
         public Track TryReserve()
         {
-            if (TrackDown.IsEmpty)
-            {
-                TrackDown.Reserve();
+            if(TrackDown.TryReserve())
                 return TrackDown; 
-            }
-            if (TrackTop.IsEmpty)
-            {
-                TrackTop.Reserve();
+            else if(TrackTop.TryReserve())
                 return TrackTop;
-            }
             return null; 
         }
         public void Free(Track track)

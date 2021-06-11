@@ -26,7 +26,7 @@ namespace Projekt2.Models
             TextBox = junction;
             IsEmpty = true; 
         }
-        public bool Reserve(Train train = null)
+        public bool TryReserve(Train train = null)
         {
             bool reserved = false; 
             junctionMutex.WaitOne(); 

@@ -37,7 +37,7 @@ namespace Projekt2.Models
             Random random = new Random(); 
             this.station = station;
             CurrentTrack = entry;
-            while(!CurrentTrack.Reserve()); 
+            while(!CurrentTrack.TryReserve()); 
             DestinationPlatform = station.Platforms.ElementAt(random.Next(0, station.Platforms.Count));
             DestinationPlatform.TrainsQueue.Add(this); 
             Junction junction = station.Junctions.ElementAt(random.Next(0, station.Junctions.Count));
@@ -89,7 +89,7 @@ namespace Projekt2.Models
                 return;
             Junction parentJunction = station.GetParentJunction(CurrentTrack);
             TrainStatus = Status.GoingToPlatform;
-            while (!parentJunction.Reserve(this)); 
+            while (!parentJunction.TryReserve(this)); 
             
             Thread.Sleep(Station.junctionTime);
             Track temp = CurrentTrack;
@@ -106,11 +106,11 @@ namespace Projekt2.Models
         }
         public void GoToExitTrack()
         {
-            if(!ExitTrack.Reserve())
+            if(!ExitTrack.TryReserve())
                 return;
             Junction parentJunction = station.GetParentJunction(ExitTrack);
             TrainStatus = Status.GoingToExitTrack;
-            while (!parentJunction.Reserve(this));
+            while (!parentJunction.TryReserve(this));
 
             Thread.Sleep(5000);
             Track temp = CurrentTrack;
