@@ -40,6 +40,8 @@ namespace Projekt2.Models
         public TimeSpan WaitTime { get; set; }
         // Train arriving time
         public DateTime CurrentTime { get; set; }
+        //station manager overrides this train control
+        public Boolean ForceMoveFlag  { get; set; }
         // Train thread
         public Thread thread;
 
@@ -73,27 +75,49 @@ namespace Projekt2.Models
         public void Run()
         {
             while(true)
-                switch (TrainStatus)
-                {
-                    case Status.ArrivingToStation:
-                        ArriveToStation();
-                        break;
-                    case Status.WaitingForPlatform:
-                        GoToPlatformTrack();
-                        break;
-                    case Status.UnloadingOnPlatform:
-                        StayOnTrack();
-                        break;
-                    case Status.WaitingForExitTrack:
-                        GoToExitTrack();
-                        break;
-                    case Status.Departing:
-                        DepartFromStation();
-                        break;
-                    case Status.Departed:
-                        thread.Abort(); 
-                        return;
-                }
+                if(!ForceMoveFlag)
+                    switch (TrainStatus)
+                    {
+                        case Status.ArrivingToStation:
+                            ArriveToStation();
+                            break;
+                        case Status.WaitingForPlatform:
+                            GoToPlatformTrack();
+                            break;
+                        case Status.UnloadingOnPlatform:
+                            StayOnTrack();
+                            break;
+                        case Status.WaitingForExitTrack:
+                            GoToExitTrack();
+                            break;
+                        case Status.Departing:
+                            DepartFromStation();
+                            break;
+                        case Status.Departed:
+                            thread.Abort();
+                            return;
+                    }
+        }
+        /// <summary>
+        /// Station manager order: go to target station
+        /// </summary>
+        /// <param name="target"> Empty track with assumptiion that it and junction are reserved by manager </param>
+        public void ForceMove(Track target)
+        {
+            Junction ParentJunction = station.GetParentJunction(target);
+            //if going to peron instead
+            if (ParentJunction == null)
+                ParentJunction = station.GetParentJunction(CurrentTrack);
+            
+            //display our train on junction
+            ParentJunction.OccupiedBy = this;
+            Thread.Sleep(Station.junctionTime);
+            
+            //go to target track and "undisplay" train name from 
+            CurrentTrack = target;
+            ParentJunction.OccupiedBy = null;
+
+
         }
         /// <summary>
         /// Method to simulate arriving train to station
@@ -157,19 +181,15 @@ namespace Projekt2.Models
         /// <summary>
         /// Method to simulate departing from station
         /// </summary>
-        public void DepartFromStation()
+        /// <param name="releaseTrack"> If false will leave station without releasing exit track. 
+        /// False should be used only by station manager. </param>
+        public void DepartFromStation(Boolean releaseTrack = true)
         {
             Thread.Sleep(Station.arrivalTime);
-            CurrentTrack.Free();
+            if(releaseTrack)
+                CurrentTrack.Free();
             station.Trains.Remove(this);
             TrainStatus = Status.Departed;
-        }
-        /// <summary>
-        /// Method to simulate train maneuver
-        /// </summary>
-        public void Maneuver()
-        {
-            // tu manewr wyjazdowy zrobimy
         }
     }
 }

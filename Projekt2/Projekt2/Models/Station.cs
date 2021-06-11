@@ -212,18 +212,114 @@ namespace Projekt2.Models
         /// </summary>
         public void StationManaging()
         {
+            while (Go)
+            {
+                //find all trains which are waiting for too long for exiting platform
+                var lockedTrains = Trains.FindAll(t =>
+                    (DateTime.Now.Subtract(t.CurrentTime).Subtract(t.WaitTime) > overTime)
+                     && (t.TrainStatus == Train.Status.WaitingForExitTrack));
+             
+                foreach (Train trainX in lockedTrains)
+                {
+                    Track deadlock_peron_track = trainX.CurrentTrack;
+                    Track deadlock_exit_track = trainX.ExitTrack;
+                    Platform deadlock_platform = trainX.DestinationPlatform;
+                    Junction deadlock_junction = GetParentJunction(deadlock_exit_track);
+
+                    //get train which locks X's exit track
+                    Train trainY = Trains.Find(t => t.CurrentTrack == deadlock_exit_track);
+                    //start acting only when both are waiting for "track swap"
+                    if (trainY == null || trainY.TrainStatus != Train.Status.WaitingForPlatform)
+                        continue;
+                    
+                    //override control
+                    trainX.ForceMoveFlag = true;
+                    trainY.ForceMoveFlag = true;
+
+                    //manually managed junction traffic between X and Y trains
+                    while (!deadlock_junction.TryReserve());
+
+                    //get and reserve empty peron track to move Y here (so X can go away) 
+                    Track empty_peron_track = GetEmptyPeronTrack();
+                    Track empty_exit_track = null;
+                    Junction empty_exit_track_junction = null;
+                    Train trainZ = null;
+                    //no empty peron track found
+                    if (empty_peron_track == null)
+                    {
+                        //wait for empty exit track and get one with reservation
+                        while ((empty_exit_track = GetEmptyExitTrack()) == null) ;
+
+                        //junction between peron and empty exit track
+                        empty_exit_track_junction = GetParentJunction(empty_exit_track);
+                        //using different junction than between X and Y
+                        if (empty_exit_track_junction != deadlock_junction)
+                            while(!empty_exit_track_junction.TryReserve());
+
+                        //get 2nd track from blocked platform (track neighbouring to X train)
+                        empty_peron_track = (deadlock_platform.TrackDown!=deadlock_peron_track ? deadlock_peron_track : deadlock_platform.TrackTop);
+                        trainZ = Trains.Find(t => t.CurrentTrack == empty_peron_track);
+                        
+                        //train departed meanwhile
+                        if(trainZ != null)
+                        {
+                            trainZ.ForceMoveFlag = true;
+                            //final state: X, Y without changes, Z moved to exit track, one platform is free.
+                            trainZ.ForceMove(empty_exit_track);
+                        }
+                        else
+                        {
+                            while(!empty_peron_track.TryReserve());
+                            empty_exit_track.Free();
+                            empty_exit_track_junction.Free();
+                            empty_exit_track = null;
+                            empty_exit_track_junction = null;
+                        }
+                    }
+
+                    //move Y to empty platform track
+                    trainY.ForceMove(empty_peron_track);
+
+                    //move X to its exit track, wait for its departure
+                    trainX.ForceMove(deadlock_exit_track);
+                    trainX.TrainStatus = Train.Status.Departing;
+                    trainX.DepartFromStation(false);
+                    
+                    //move Y to X initial place - Y destination platform
+                    trainY.ForceMove(deadlock_exit_track);
+                    trainY.ForceMove(deadlock_peron_track);
+                    //switch back to automated mode
+                    trainY.TrainStatus = Train.Status.UnloadingOnPlatform;
+                    trainY.ForceMoveFlag = false;
+                    deadlock_exit_track.Free();
+
+                    //empty exit track was needed - Z is waiting there
+                    if (empty_exit_track != null)
+                    {
+                        //take Z back to its platform track
+                        trainZ.ForceMove(empty_peron_track);
+                        trainZ.ForceMoveFlag = false;
+
+                        empty_exit_track.Free();
+                        empty_exit_track_junction.Free();
+                    }
+
+                    if (empty_exit_track_junction != deadlock_junction)
+                        deadlock_junction.Free();
+                }
+            }
         }
         /// <summary>
         /// Method to find empty platform track
         /// </summary>
-        /// <returns> Empty platform track </returns>
+        /// <returns> Platform track without train, but with acquired reservation </returns>
         public Track GetEmptyPeronTrack()
         {
             foreach (var platform in Platforms)
-            {
-                if(platform.TrackTop.IsEmpty)
+            {   
+                if(platform.TrackTop.TryReserve())
                     return platform.TrackTop;
-                if(platform.TrackDown.IsEmpty)
+                if(platform.TrackDown.TryReserve())
                     return platform.TrackDown;
             }
             return null;
@@ -231,13 +327,13 @@ namespace Projekt2.Models
         /// <summary>
         /// Method to find empty exit track 
         /// </summary>
-        /// <returns> Empty exit(entry) track </returns>
+        /// <returns> exit(entry) track  without train, but with acquired reservation</returns>
         public Track GetEmptyExitTrack()
         {
             Track ret;
             foreach (var j in Junctions)
             {
-                ret = j.EntryTracks.Find(t => t.IsEmpty);
+                ret = j.EntryTracks.Find(t => t.TryReserve());
                 if(ret != null)
                     return ret;
             }
