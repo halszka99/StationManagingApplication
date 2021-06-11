@@ -13,7 +13,7 @@ namespace Projekt2
 {
     public partial class Form1 : Form
     {
-        Station station;
+        readonly Station station;
         public Form1()
         {
             InitializeComponent();

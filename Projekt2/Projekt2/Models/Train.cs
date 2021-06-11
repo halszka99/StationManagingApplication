@@ -40,6 +40,7 @@ namespace Projekt2.Models
         public TimeSpan WaitTime { get; set; }
         // Train arriving time
         public DateTime CurrentTime { get; set; }
+        public DateTime DepartTime { get; set; }
         //station manager overrides this train control
         public Boolean ForceMoveFlag  { get; set; }
         // Train thread
@@ -61,11 +62,11 @@ namespace Projekt2.Models
             DestinationPlatform.TrainsQueue.Add(this); 
             Junction junction = station.Junctions.ElementAt(random.Next(0, station.Junctions.Count));
             ExitTrack = junction.EntryTracks.ElementAt(random.Next(0, junction.EntryTracks.Count));
-            WaitTime = new TimeSpan(0,0,0,0,random.Next(0, Station.maxStayTime));
-            CurrentTime = DateTime.Now;
+            WaitTime = new TimeSpan(0,0,0,random.Next(1, Station.maxStayTime));
+            
             TrainStatus = Status.ArrivingToStation;
             Id = id;
-
+            ForceMoveFlag = false; 
             thread = new Thread(Run);
             thread.Start();
         }
@@ -102,22 +103,35 @@ namespace Projekt2.Models
         /// Station manager order: go to target station
         /// </summary>
         /// <param name="target"> Empty track with assumptiion that it and junction are reserved by manager </param>
+        //public void ForceMove(Track target)
+        //{
+        //    Junction ParentJunction = station.GetParentJunction(target);
+        //    //if going to peron instead
+        //    if (ParentJunction == null)
+        //        ParentJunction = station.GetParentJunction(CurrentTrack);
+
+        //    //display our train on junction
+        //    ParentJunction.OccupiedBy = this;
+        //    Thread.Sleep(Station.junctionTime);
+
+        //    //go to target track and "undisplay" train name from 
+        //    CurrentTrack = target;
+        //    ParentJunction.OccupiedBy = null;
+        //}
         public void ForceMove(Track target)
         {
-            Junction ParentJunction = station.GetParentJunction(target);
-            //if going to peron instead
-            if (ParentJunction == null)
-                ParentJunction = station.GetParentJunction(CurrentTrack);
-            
-            //display our train on junction
-            ParentJunction.OccupiedBy = this;
+            Junction parent = station.GetParentJunction(target);
+            if (parent == null)
+                parent = station.GetParentJunction(CurrentTrack);
+
+            parent.TryReserve(this);
             Thread.Sleep(Station.junctionTime);
-            
-            //go to target track and "undisplay" train name from 
+
+            Track temp = CurrentTrack;
             CurrentTrack = target;
-            ParentJunction.OccupiedBy = null;
 
-
+            parent.Free();
+            temp.Free();
         }
         /// <summary>
         /// Method to simulate arriving train to station
@@ -150,6 +164,8 @@ namespace Projekt2.Models
             temp.Free();
             DestinationPlatform.TrainsQueue.Remove(this); 
             TrainStatus = Status.UnloadingOnPlatform;
+            CurrentTime = DateTime.Now;
+            DepartTime = CurrentTime + WaitTime;
         }
         /// <summary>
         /// Method to simulate staying on track 
