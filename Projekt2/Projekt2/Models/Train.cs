@@ -12,6 +12,7 @@ namespace Projekt2.Models
     /// </summary>
     class Train
     {
+        // Enum containing train statuses
         public enum Status
         {
             ArrivingToStation,
@@ -23,7 +24,7 @@ namespace Projekt2.Models
             Departing,
             Departed
         }
-
+        // Train status describing which operation train does
         public Status TrainStatus { get; set; }
         // Train id
         public Int32 Id  { get; set; }
@@ -107,6 +108,9 @@ namespace Projekt2.Models
         /// </summary>
         public void GoToPlatformTrack()
         {
+            if (DestinationPlatform.TrainsQueue.First() != this)
+                return; 
+
             Track platformTrack = DestinationPlatform.TryReserve();
             if(platformTrack == null)
                 return;
@@ -120,6 +124,7 @@ namespace Projekt2.Models
             CurrentTrack = platformTrack; 
             parentJunction.Free();
             temp.Free();
+            DestinationPlatform.TrainsQueue.Remove(this); 
             TrainStatus = Status.UnloadingOnPlatform;
         }
         /// <summary>
