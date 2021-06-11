@@ -13,7 +13,7 @@ namespace Projekt2.Models
         public Int32 Id { get; set; }
         public Track TrackTop { get; set; }
         public Track TrackDown { get; set; }
-        public List<Train> TrainsQueue { get; set; }
+        public List<Train> TrainsQueue { get; set; } = new List<Train>();
         
         public Platform(List<TextBox> textBoxes, Int32 id)
         {
