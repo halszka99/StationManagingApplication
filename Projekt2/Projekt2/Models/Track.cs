@@ -38,7 +38,7 @@ namespace Projekt2.Models
         /// Method to reserve track 
         /// </summary>
         /// <returns> Returns true if track has been reserved </returns>
-        public bool Reserve()
+        public bool TryReserve()
         {
             bool reserved = false;
             TrackMutex.WaitOne();

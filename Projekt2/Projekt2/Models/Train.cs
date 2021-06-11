@@ -12,6 +12,19 @@ namespace Projekt2.Models
     /// </summary>
     class Train
     {
+        public enum Status
+        {
+            ArrivingToStation,
+            WaitingForPlatform,
+            GoingToPlatform,
+            UnloadingOnPlatform,
+            WaitingForExitTrack,
+            GoingToExitTrack,
+            Departing,
+            Departed
+        }
+
+        public Status TrainStatus { get; set; }
         // Train id
         public Int32 Id  { get; set; }
         // Station that train is arriving to
@@ -28,6 +41,7 @@ namespace Projekt2.Models
         public DateTime CurrentTime { get; set; }
         // Train thread
         public Thread thread;
+
         /// <summary>
         /// Train constructor
         /// </summary>
@@ -39,14 +53,16 @@ namespace Projekt2.Models
             Random random = new Random(); 
             this.station = station;
             CurrentTrack = entry;
-            while(!CurrentTrack.Reserve()); 
+            while(!CurrentTrack.TryReserve()); 
             DestinationPlatform = station.Platforms.ElementAt(random.Next(0, station.Platforms.Count));
             DestinationPlatform.TrainsQueue.Add(this); 
             Junction junction = station.Junctions.ElementAt(random.Next(0, station.Junctions.Count));
             ExitTrack = junction.EntryTracks.ElementAt(random.Next(0, junction.EntryTracks.Count));
             WaitTime = new TimeSpan(0,0,0,0,random.Next(0, Station.maxStayTime));
             CurrentTime = DateTime.Now;
+            TrainStatus = Status.ArrivingToStation;
             Id = id;
+
             thread = new Thread(Run);
             thread.Start();
         }
@@ -55,11 +71,28 @@ namespace Projekt2.Models
         /// </summary>
         public void Run()
         {
-            ArriveToStation();
-            GoToPlatformTrack();
-            StayOnTrack();
-            GoToExitTrack();
-            DepartFromStation();
+            while(true)
+                switch (TrainStatus)
+                {
+                    case Status.ArrivingToStation:
+                        ArriveToStation();
+                        break;
+                    case Status.WaitingForPlatform:
+                        GoToPlatformTrack();
+                        break;
+                    case Status.UnloadingOnPlatform:
+                        StayOnTrack();
+                        break;
+                    case Status.WaitingForExitTrack:
+                        GoToExitTrack();
+                        break;
+                    case Status.Departing:
+                        DepartFromStation();
+                        break;
+                    case Status.Departed:
+                        thread.Abort(); 
+                        return;
+                }
         }
         /// <summary>
         /// Method to simulate arriving train to station
@@ -67,23 +100,27 @@ namespace Projekt2.Models
         public void ArriveToStation()
         {
             Thread.Sleep(Station.arrivalTime);
+            TrainStatus = Status.WaitingForPlatform;
         }
         /// <summary>
         /// Method to simulate going from entry track to platform track
         /// </summary>
         public void GoToPlatformTrack()
         {
-            Track platformTrack;
-            while ((platformTrack = DestinationPlatform.TryReserve()) == null) ;
+            Track platformTrack = DestinationPlatform.TryReserve();
+            if(platformTrack == null)
+                return;
+          
             Junction parentJunction = station.GetParentJunction(CurrentTrack);
-
-            while (!parentJunction.Reserve(this)) ;
-
+            TrainStatus = Status.GoingToPlatform;
+            while (!parentJunction.TryReserve(this)); 
+            
             Thread.Sleep(Station.junctionTime);
             Track temp = CurrentTrack;
             CurrentTrack = platformTrack; 
             parentJunction.Free();
             temp.Free();
+            TrainStatus = Status.UnloadingOnPlatform;
         }
         /// <summary>
         /// Method to simulate staying on track 
@@ -91,15 +128,18 @@ namespace Projekt2.Models
         public void StayOnTrack()
         {
             Thread.Sleep(WaitTime);
+            TrainStatus = Status.WaitingForExitTrack;
         }
         /// <summary>
         /// Method to simulate going from platform to exit track
         /// </summary>
         public void GoToExitTrack()
         {
-            while(!ExitTrack.Reserve());
+            if(!ExitTrack.TryReserve())
+                return;
             Junction parentJunction = station.GetParentJunction(ExitTrack);
-            while (!parentJunction.Reserve(this));
+            TrainStatus = Status.GoingToExitTrack;
+            while (!parentJunction.TryReserve(this));
 
             Thread.Sleep(5000);
             Track temp = CurrentTrack;
@@ -107,6 +147,7 @@ namespace Projekt2.Models
 
             parentJunction.Free();
             temp.Free();
+            TrainStatus = Status.Departing;
         }
         /// <summary>
         /// Method to simulate departing from station
@@ -116,7 +157,7 @@ namespace Projekt2.Models
             Thread.Sleep(Station.arrivalTime);
             CurrentTrack.Free();
             station.Trains.Remove(this);
-            thread.Abort(); 
+            TrainStatus = Status.Departed;
         }
         /// <summary>
         /// Method to simulate train maneuver

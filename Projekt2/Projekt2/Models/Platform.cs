@@ -39,16 +39,10 @@ namespace Projekt2.Models
         /// <returns> Track that was reserved or null when none was reserved </returns>
         public Track TryReserve()
         {
-            if (TrackDown.IsEmpty)
-            {
-                TrackDown.Reserve();
+            if(TrackDown.TryReserve())
                 return TrackDown; 
-            }
-            if (TrackTop.IsEmpty)
-            {
-                TrackTop.Reserve();
+            else if(TrackTop.TryReserve())
                 return TrackTop;
-            }
             return null; 
         }
 

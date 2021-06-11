@@ -47,7 +47,8 @@ namespace Projekt2.Models
         /// </summary>
         /// <param name="train"> Train that is trying to reserve junction </param>
         /// <returns> Returns true if junction has been reserved </returns>
-        public bool Reserve(Train train = null)
+        public bool TryReserve(Train train = null)
+
         {
             bool reserved = false; 
             junctionMutex.WaitOne(); 
