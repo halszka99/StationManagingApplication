@@ -212,7 +212,6 @@ namespace Projekt2.Models
         /// </summary>
         public void StationManaging()
         {
-
         }
         /// <summary>
         /// Method to find empty platform track
