@@ -7,16 +7,33 @@ using System.Threading.Tasks;
 
 namespace Projekt2.Models
 {
+    /// <summary>
+    /// Class representing train
+    /// </summary>
     class Train
     {
+        // Train id
         public Int32 Id  { get; set; }
+        // Station that train is arriving to
         readonly Station station;
+        // Track that train is on
         public Track CurrentTrack { get; set; }
+        // Train exit track
         public Track ExitTrack { get; set; }
+        // Platform that train should 
         public Platform DestinationPlatform { get; set; }
+        // Time that train will spend on platform
         public TimeSpan WaitTime { get; set; }
+        // Train arriving time
         public DateTime CurrentTime { get; set; }
+        // Train thread
         public Thread thread;
+        /// <summary>
+        /// Train constructor
+        /// </summary>
+        /// <param name="station"> Station that train is arriving to </param>
+        /// <param name="entry"> Track that train is arriving to </param>
+        /// <param name="id"> Train id </param>
         public Train(Station station, Track entry, Int32 id)
         {
             Random random = new Random(); 
@@ -33,6 +50,9 @@ namespace Projekt2.Models
             thread = new Thread(Run);
             thread.Start();
         }
+        /// <summary>
+        /// Method to simulate behavior of train
+        /// </summary>
         public void Run()
         {
             ArriveToStation();
@@ -41,16 +61,18 @@ namespace Projekt2.Models
             GoToExitTrack();
             DepartFromStation();
         }
-
+        /// <summary>
+        /// Method to simulate arriving train to station
+        /// </summary>
         public void ArriveToStation()
         {
             Thread.Sleep(Station.arrivalTime);
         }
-
+        /// <summary>
+        /// Method to simulate going from entry track to platform track
+        /// </summary>
         public void GoToPlatformTrack()
         {
-            while (DestinationPlatform.TrainsQueue.First() != this) ;
-
             Track platformTrack;
             while ((platformTrack = DestinationPlatform.TryReserve()) == null) ;
             Junction parentJunction = station.GetParentJunction(CurrentTrack);
@@ -59,15 +81,20 @@ namespace Projekt2.Models
 
             Thread.Sleep(Station.junctionTime);
             Track temp = CurrentTrack;
-            CurrentTrack = platformTrack;
-            DestinationPlatform.TrainsQueue.Remove(this); 
+            CurrentTrack = platformTrack; 
             parentJunction.Free();
             temp.Free();
         }
+        /// <summary>
+        /// Method to simulate staying on track 
+        /// </summary>
         public void StayOnTrack()
         {
             Thread.Sleep(WaitTime);
         }
+        /// <summary>
+        /// Method to simulate going from platform to exit track
+        /// </summary>
         public void GoToExitTrack()
         {
             while(!ExitTrack.Reserve());
@@ -80,8 +107,10 @@ namespace Projekt2.Models
 
             parentJunction.Free();
             temp.Free();
-
         }
+        /// <summary>
+        /// Method to simulate departing from station
+        /// </summary>
         public void DepartFromStation()
         {
             Thread.Sleep(Station.arrivalTime);
@@ -89,6 +118,9 @@ namespace Projekt2.Models
             station.Trains.Remove(this);
             thread.Abort(); 
         }
+        /// <summary>
+        /// Method to simulate train maneuver
+        /// </summary>
         public void Maneuver()
         {
             // tu manewr wyjazdowy zrobimy

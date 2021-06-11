@@ -67,5 +67,9 @@ namespace Projekt2
             station.EndSimulation();
             buttonStop.Enabled = false;
         }
+        private void Form1_Closed(object sender, System.EventArgs e)
+        {
+            station.EndSimulation(); 
+        }
     }
 }

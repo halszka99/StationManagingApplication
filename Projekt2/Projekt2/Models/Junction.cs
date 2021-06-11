@@ -8,13 +8,28 @@ using System.Windows.Forms;
 
 namespace Projekt2.Models
 {
+    /// <summary>
+    /// Class representing junction
+    /// </summary>
     class Junction
     {
+        // List of entry tracks belonging to junction
         public List<Track> EntryTracks { get; set; }
+        // Variable defining if junction is empty
         public bool IsEmpty { get; set; }
+        // Variable defining which train junction is occupied by
         public Train OccupiedBy { get; set; }
+        // TextBox belonging to junctions
         public TextBox TextBox { get; set; }
+        // Junction mutex
         public Mutex junctionMutex = new Mutex();
+
+        /// <summary>
+        /// Junction constructor
+        /// </summary>
+        /// <param name="junction"> TextBox belonging to junction </param>
+        /// <param name="tracks"> List of entry tracks belonging to junction </param>
+        /// <param name="side"> Value defining if its left or right junction </param>
         public Junction(TextBox junction, List<TextBox> tracks, string side)
         {
             EntryTracks = new List<Track>();
@@ -26,6 +41,12 @@ namespace Projekt2.Models
             TextBox = junction;
             IsEmpty = true; 
         }
+
+        /// <summary>
+        /// Method to reserve junction. 
+        /// </summary>
+        /// <param name="train"> Train that is trying to reserve junction </param>
+        /// <returns> Returns true if junction has been reserved </returns>
         public bool Reserve(Train train = null)
         {
             bool reserved = false; 
@@ -39,6 +60,10 @@ namespace Projekt2.Models
             junctionMutex.ReleaseMutex();
             return reserved; 
         }
+
+        /// <summary>
+        /// Method to free occupied junction
+        /// </summary>
         public void Free()
         {
             junctionMutex.WaitOne();
