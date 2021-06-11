@@ -18,10 +18,12 @@ namespace Projekt2.Models
         public Thread stationManager; 
         public Thread trainManager; 
         public Thread simulationManager; 
-        public static int maxStayTime = 5000;
-        public static TimeSpan junctionTime = new TimeSpan(0,0,0,5,0);
-        public static TimeSpan arrivalTime = new TimeSpan(0,0,0,5,0);
+        public static int maxStayTime = 3000;
+        public static TimeSpan junctionTime = new TimeSpan(0,0,0,1);
+        public static TimeSpan arrivalTime = new TimeSpan(0,0,0,2);
         public static TimeSpan overTime = new TimeSpan(0,0,0,2);
+        public static int minCheckTime = 2000;
+        public static int maxCheckTime = 5000;
 
         public Form1 MyForm;
 
@@ -63,7 +65,8 @@ namespace Projekt2.Models
                     track.TextBox.Text = track.Id + " Free";
                 else
                 {
-                    Train tr = Trains.Find(t => t.CurrentTrack == track);
+                    Train tr = null;
+                    tr = Trains.Find(t => t.CurrentTrack == track);
                     if(tr != null)
                         track.TextBox.Text = track.Id + " T" + tr.Id;
                     else
@@ -95,8 +98,6 @@ namespace Projekt2.Models
                     UpdateTrackLabel(platform.TrackDown);
                     UpdateTrackLabel(platform.TrackTop);
                 }
-                
-                
             }
         }
 
@@ -129,9 +130,12 @@ namespace Projekt2.Models
         }
         public void GenerateTrain()
         {
+            Random random = new Random(); 
             while (Go)
             {
-                Thread.Sleep(300);
+                int sleep = random.Next(minCheckTime, maxCheckTime); 
+                Thread.Sleep(sleep);
+
                 List<Track> emptyTracks = new List<Track>();
                 foreach (var junction in Junctions)
                 {
@@ -147,7 +151,6 @@ namespace Projekt2.Models
                     }
                 }
 
-                Random random = new Random();
                 if (emptyTracks.Count > 1)
                 {
                     Track trackToGenerateTrain = emptyTracks.ElementAt(random.Next(0, emptyTracks.Count));
