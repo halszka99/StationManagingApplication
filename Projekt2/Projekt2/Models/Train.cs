@@ -7,17 +7,11 @@ using System.Threading.Tasks;
 
 namespace Projekt2.Models
 {
+    /// <summary>
+    /// Class representing train
+    /// </summary>
     class Train
     {
-        public Int32 Id  { get; set; }
-        readonly Station station;
-        public Track CurrentTrack { get; set; }
-        public Track ExitTrack { get; set; }
-        public Platform DestinationPlatform { get; set; }
-        public TimeSpan WaitTime { get; set; }
-        public DateTime CurrentTime { get; set; }
-        public Thread thread;
-
         public enum Status
         {
             ArrivingToStation,
@@ -31,7 +25,29 @@ namespace Projekt2.Models
         }
 
         public Status TrainStatus { get; set; }
+        // Train id
+        public Int32 Id  { get; set; }
+        // Station that train is arriving to
+        readonly Station station;
+        // Track that train is on
+        public Track CurrentTrack { get; set; }
+        // Train exit track
+        public Track ExitTrack { get; set; }
+        // Platform that train should 
+        public Platform DestinationPlatform { get; set; }
+        // Time that train will spend on platform
+        public TimeSpan WaitTime { get; set; }
+        // Train arriving time
+        public DateTime CurrentTime { get; set; }
+        // Train thread
+        public Thread thread;
 
+        /// <summary>
+        /// Train constructor
+        /// </summary>
+        /// <param name="station"> Station that train is arriving to </param>
+        /// <param name="entry"> Track that train is arriving to </param>
+        /// <param name="id"> Train id </param>
         public Train(Station station, Track entry, Int32 id)
         {
             Random random = new Random(); 
@@ -50,6 +66,9 @@ namespace Projekt2.Models
             thread = new Thread(Run);
             thread.Start();
         }
+        /// <summary>
+        /// Method to simulate behavior of train
+        /// </summary>
         public void Run()
         {
             while(true)
@@ -75,35 +94,45 @@ namespace Projekt2.Models
                         return;
                 }
         }
-
+        /// <summary>
+        /// Method to simulate arriving train to station
+        /// </summary>
         public void ArriveToStation()
         {
             Thread.Sleep(Station.arrivalTime);
             TrainStatus = Status.WaitingForPlatform;
         }
-
+        /// <summary>
+        /// Method to simulate going from entry track to platform track
+        /// </summary>
         public void GoToPlatformTrack()
         {
             Track platformTrack = DestinationPlatform.TryReserve();
             if(platformTrack == null)
                 return;
+          
             Junction parentJunction = station.GetParentJunction(CurrentTrack);
             TrainStatus = Status.GoingToPlatform;
             while (!parentJunction.TryReserve(this)); 
             
             Thread.Sleep(Station.junctionTime);
             Track temp = CurrentTrack;
-            CurrentTrack = platformTrack;
-            DestinationPlatform.TrainsQueue.Remove(this); 
+            CurrentTrack = platformTrack; 
             parentJunction.Free();
             temp.Free();
             TrainStatus = Status.UnloadingOnPlatform;
         }
+        /// <summary>
+        /// Method to simulate staying on track 
+        /// </summary>
         public void StayOnTrack()
         {
             Thread.Sleep(WaitTime);
             TrainStatus = Status.WaitingForExitTrack;
         }
+        /// <summary>
+        /// Method to simulate going from platform to exit track
+        /// </summary>
         public void GoToExitTrack()
         {
             if(!ExitTrack.TryReserve())
@@ -120,6 +149,9 @@ namespace Projekt2.Models
             temp.Free();
             TrainStatus = Status.Departing;
         }
+        /// <summary>
+        /// Method to simulate departing from station
+        /// </summary>
         public void DepartFromStation()
         {
             Thread.Sleep(Station.arrivalTime);
@@ -127,6 +159,9 @@ namespace Projekt2.Models
             station.Trains.Remove(this);
             TrainStatus = Status.Departed;
         }
+        /// <summary>
+        /// Method to simulate train maneuver
+        /// </summary>
         public void Maneuver()
         {
             // tu manewr wyjazdowy zrobimy
