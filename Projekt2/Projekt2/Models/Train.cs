@@ -54,6 +54,7 @@ namespace Projekt2.Models
         /// <param name="id"> Train id </param>
         public Train(Station station, Track entry, Int32 id)
         {
+            TrainStatus = Status.ArrivingToStation;
             Random random = new Random(); 
             this.station = station;
             CurrentTrack = entry;
@@ -63,8 +64,6 @@ namespace Projekt2.Models
             Junction junction = station.Junctions.ElementAt(random.Next(0, station.Junctions.Count));
             ExitTrack = junction.EntryTracks.ElementAt(random.Next(0, junction.EntryTracks.Count));
             WaitTime = new TimeSpan(0,0,0,random.Next(1, Station.maxStayTime));
-            
-            TrainStatus = Status.ArrivingToStation;
             Id = id;
             ForceMoveFlag = false; 
             thread = new Thread(Run);
@@ -103,34 +102,29 @@ namespace Projekt2.Models
         /// Station manager order: go to target station
         /// </summary>
         /// <param name="target"> Empty track with assumptiion that it and junction are reserved by manager </param>
-        //public void ForceMove(Track target)
-        //{
-        //    Junction ParentJunction = station.GetParentJunction(target);
-        //    //if going to peron instead
-        //    if (ParentJunction == null)
-        //        ParentJunction = station.GetParentJunction(CurrentTrack);
-
-        //    //display our train on junction
-        //    ParentJunction.OccupiedBy = this;
-        //    Thread.Sleep(Station.junctionTime);
-
-        //    //go to target track and "undisplay" train name from 
-        //    CurrentTrack = target;
-        //    ParentJunction.OccupiedBy = null;
-        //}
         public void ForceMove(Track target)
         {
-            Junction parent = station.GetParentJunction(target);
-            if (parent == null)
-                parent = station.GetParentJunction(CurrentTrack);
+            Junction ParentJunction = station.GetParentJunction(target);
+            //if going to peron instead
+            if (ParentJunction == null)
+                ParentJunction = station.GetParentJunction(CurrentTrack);
 
-            parent.TryReserve(this);
+            //display our train on junction
+            ParentJunction.OccupiedBy = this;
+            Thread.Sleep(Station.junctionTime);
+
+            //go to target track and "undisplay" train name from 
+            CurrentTrack = target;
+            ParentJunction.OccupiedBy = null;
+        }
+        public void ForceMove(Track target, Junction parent)
+        {
+            parent.OccupiedBy = this;
             Thread.Sleep(Station.junctionTime);
 
             Track temp = CurrentTrack;
             CurrentTrack = target;
 
-            parent.Free();
             temp.Free();
         }
         /// <summary>

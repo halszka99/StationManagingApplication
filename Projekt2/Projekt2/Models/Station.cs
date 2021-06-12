@@ -36,7 +36,7 @@ namespace Projekt2.Models
         // Value indicating time that train spend on entry track
         public static TimeSpan arrivalTime = new TimeSpan(0,0,0,2);
         // Value indicating max train overtime on platform
-        public static TimeSpan overTime = new TimeSpan(0,0,0,2);
+        public static TimeSpan overTime = new TimeSpan(0,0,0,5);
         // Value indicating min time of random time to generate train in miliseconds
         public static int minCheckTime = 2000;
         // Value indicating max  time of random time to generate train in miliseconds
@@ -79,7 +79,7 @@ namespace Projekt2.Models
             Go = false; 
             // Creating threads 
             stationManager = new Thread(StationManaging);
-            trainManager = new Thread(GenerateTrain);
+            //trainManager = new Thread(GenerateTrain);
             simulationManager = new Thread(SimulationManaging);
         }
         /// <summary>
@@ -151,7 +151,7 @@ namespace Projekt2.Models
         {
             Go = true; 
             stationManager.Start();
-            trainManager.Start();
+            //trainManager.Start();
             simulationManager.Start(); 
         }
         /// <summary>
@@ -161,200 +161,193 @@ namespace Projekt2.Models
         {
             Go = false; 
             simulationManager.Abort();
-            trainManager.Abort();
+            //trainManager.Abort();
             stationManager.Abort();
             foreach (var train in Trains)
                 train.thread.Abort();
             
+        }
+        public void StationManaging()
+        {
+            while (Go)
+            {
+                Maneuver();
+                GenerateTrain(); 
+            }
         }
         /// <summary>
         /// Method to generate trains
         /// </summary>
         public void GenerateTrain()
         {
+            Random random = new Random();
+            //int sleep = random.Next(minCheckTime, maxCheckTime); 
 
-            while (Go)
+            // Making list of empty tracks 
+            List<Track> emptyTracks = new List<Track>();
+            foreach (var junction in Junctions)
             {
-                Random random = new Random();
-                int sleep = random.Next(minCheckTime, maxCheckTime); 
-                Thread.Sleep(sleep);
-                // Making list of empty tracks 
-                List<Track> emptyTracks = new List<Track>();
-                foreach (var junction in Junctions)
+                foreach (var track in junction.EntryTracks)
                 {
-                    foreach (var track in junction.EntryTracks)
+                    if (track.TrackMutex.WaitOne(10))
                     {
-                        if (track.TrackMutex.WaitOne(10))
-                        {
-                            if (track.IsEmpty)
-                                emptyTracks.Add(track);
-                            else
-                                track.TrackMutex.ReleaseMutex();
-                        }
+                        if (track.IsEmpty)
+                            emptyTracks.Add(track);
+                        else
+                            track.TrackMutex.ReleaseMutex();
                     }
-                }
-                // Adding train on random empty track if there is more than 1 empty track
-                if (emptyTracks.Count > 1)
-                {
-                    Track trackToGenerateTrain = emptyTracks.ElementAt(random.Next(0, emptyTracks.Count));
-                    Train train = new Train(this, trackToGenerateTrain,TrainId++);
-                    Trains.Add(train);
-                }
-                // Releasing mutex of empty tracks
-                foreach (var track in emptyTracks)
-                {
-                    track.TrackMutex.ReleaseMutex();
                 }
             }
+            // Adding train on random empty track if there is more than 1 empty track
+            if (emptyTracks.Count > 1)
+            {
+                Track trackToGenerateTrain = emptyTracks.ElementAt(random.Next(0, emptyTracks.Count));
+                Train train = new Train(this, trackToGenerateTrain,TrainId++);
+                Trains.Add(train);
+            }
+            // Releasing mutex of empty tracks
+            foreach (var track in emptyTracks)
+            {
+                track.TrackMutex.ReleaseMutex();
+            }
+
         }
 
-        public void StationManaging()
+        public void Maneuver()
         {
-            while (Go)
+            Train trainX = Trains.Find(t =>
+                    (t.TrainStatus == Train.Status.WaitingForExitTrack) &&
+                    (DateTime.Now.Subtract(t.DepartTime) > overTime));
+
+            if (trainX != null)
             {
-                Train trainX = null; 
-                trainX = Trains.Find(t =>
-                    (DateTime.Now.Subtract(t.DepartTime) > overTime)
-                    && (t.TrainStatus == Train.Status.WaitingForExitTrack));
+                Track deadlock_peron_track = trainX.CurrentTrack;
+                Track deadlock_exit_track = trainX.ExitTrack;
+                Junction deadlock_junction = GetParentJunction(deadlock_exit_track);
 
-                if (trainX != null)
+                while (!deadlock_junction.TryReserve());
+
+                foreach (var train in Trains)
                 {
-                    foreach (var train in Trains)
-                    {
-                        train.ForceMoveFlag = true; 
-                    }
+                    train.ForceMoveFlag = true;
+                }
 
-                    Track deadlock_peron_track = trainX.CurrentTrack;
-                    Track deadlock_exit_track = trainX.ExitTrack;
-                    Platform deadlock_platform = trainX.DestinationPlatform;
-                    Junction deadlock_junction = GetParentJunction(deadlock_exit_track);
+                Train trainY = Trains.Find(t => t.CurrentTrack == deadlock_exit_track);
+                if (trainY == null || trainY.TrainStatus == Train.Status.Departing || trainY.TrainStatus == Train.Status.Departed)
+                    return;
 
-                    Train trainY = Trains.Find(t => t.CurrentTrack == deadlock_exit_track);
-                    if (trainY == null || trainY.TrainStatus == Train.Status.Departing || trainY.TrainStatus == Train.Status.Departed)
-                        break;
+                Track emptyExitTrack = GetEmptyExitTrack();
+                trainX.ForceMove(emptyExitTrack, deadlock_junction);
+                trainY.ForceMove(deadlock_peron_track, deadlock_junction);
+                trainX.ForceMove(deadlock_exit_track, deadlock_junction);
+                trainY.TrainStatus = Train.Status.UnloadingOnPlatform;
+                trainX.TrainStatus = Train.Status.Departing;
 
-                    if (!deadlock_junction.IsEmpty)
-                        deadlock_junction.Free(); 
-
-                    Track emptyExitTrack = GetEmptyExitTrack();
-                    trainX.ForceMove(emptyExitTrack);
-                    trainY.ForceMove(deadlock_peron_track);
-                    trainX.ForceMove(deadlock_exit_track);
-                    trainY.TrainStatus = Train.Status.UnloadingOnPlatform; 
-                    trainX.TrainStatus = Train.Status.Departing;
-
-                    foreach (var train in Trains)
-                    {
-                        train.ForceMoveFlag = false;
-                    }
+                foreach (var train in Trains)
+                {
+                    train.ForceMoveFlag = false;
                 }
             }
         }
         /// <summary>
         /// Method to managing station - avoiding deadlocks
         /// </summary>
-        //public void StationManaging()
-        //{
-        //    while (Go)
-        //    {
-        //        //find all trains which are waiting for too long for exiting platform
-        //        var trainX = Trains.Find(t =>
-        //            (DateTime.Now.Subtract(t.CurrentTime).Subtract(t.WaitTime) > overTime)
-        //             && (t.TrainStatus == Train.Status.WaitingForExitTrack));
+        public void Maneuver2()
+        {
+                //find all trains which are waiting for too long for exiting platform
+                var trainX = Trains.Find(t =>
+                    ((t.TrainStatus == Train.Status.WaitingForExitTrack) && (DateTime.Now.Subtract(t.DepartTime) > overTime)));
 
-        //        //foreach (Train trainX in lockedTrains)
-        //        if (trainX != null)
-        //        {
-        //            Track deadlock_peron_track = trainX.CurrentTrack;
-        //            Track deadlock_exit_track = trainX.ExitTrack;
-        //            Platform deadlock_platform = trainX.DestinationPlatform;
-        //            Junction deadlock_junction = GetParentJunction(deadlock_exit_track);
+                //foreach (Train trainX in lockedTrains)
+                if (trainX != null)
+                {
+                    Track deadlock_peron_track = trainX.CurrentTrack;
+                    Track deadlock_exit_track = trainX.ExitTrack;
+                    Platform deadlock_platform = trainX.DestinationPlatform;
+                    Junction deadlock_junction = GetParentJunction(deadlock_exit_track);
 
-        //            //get train which locks X's exit track
-        //            Train trainY = Trains.Find(t => t.CurrentTrack == deadlock_exit_track);
-        //            //start acting only when both are waiting for "track swap"
-        //            if (trainY == null || trainY.TrainStatus != Train.Status.WaitingForPlatform)
-        //                continue;
-                    
-        //            //override control
-        //            trainX.ForceMoveFlag = true;
-        //            trainY.ForceMoveFlag = true;
+                    //get train which locks X's exit track
+                    Train trainY = Trains.Find(t => t.CurrentTrack == deadlock_exit_track);
+                //start acting only when both are waiting for "track swap"
+                if (trainY == null || trainY.TrainStatus != Train.Status.WaitingForPlatform)
+                    return;
 
-        //            //manually managed junction traffic between X and Y trains
-        //            while (!deadlock_junction.TryReserve());
+                    //override control
+                    trainX.ForceMoveFlag = true;
+                    trainY.ForceMoveFlag = true;
 
-        //            //get and reserve empty peron track to move Y here (so X can go away) 
-        //            Track empty_peron_track = GetEmptyPeronTrack();
-        //            Track empty_exit_track = null;
-        //            Junction empty_exit_track_junction = null;
-        //            Train trainZ = null;
-        //            //no empty peron track found
-        //            if (empty_peron_track == null)
-        //            {
-        //                //wait for empty exit track and get one with reservation
-        //                while ((empty_exit_track = GetEmptyExitTrack()) == null) ;
+                    //manually managed junction traffic between X and Y trains
+                    while (!deadlock_junction.TryReserve()) ;
 
-        //                //junction between peron and empty exit track
-        //                empty_exit_track_junction = GetParentJunction(empty_exit_track);
-        //                //using different junction than between X and Y
-        //                if (empty_exit_track_junction != deadlock_junction)
-        //                    while(!empty_exit_track_junction.TryReserve());
+                    //get and reserve empty peron track to move Y here (so X can go away) 
+                    Track empty_peron_track = GetEmptyPeronTrack();
+                    Track empty_exit_track = null;
+                    Junction empty_exit_track_junction = null;
+                    Train trainZ = null;
+                    //no empty peron track found
+                    if (empty_peron_track == null)
+                    {
+                        //wait for empty exit track and get one with reservation
+                        while ((empty_exit_track = GetEmptyExitTrack()) == null) ;
 
-        //                //get 2nd track from blocked platform (track neighbouring to X train)
-        //                empty_peron_track = (deadlock_platform.TrackDown!=deadlock_peron_track ? deadlock_peron_track : deadlock_platform.TrackTop);
-        //                trainZ = Trains.Find(t => t.CurrentTrack == empty_peron_track);
-                        
-        //                //train departed meanwhile
-        //                if(trainZ != null)
-        //                {
-        //                    trainZ.ForceMoveFlag = true;
-        //                    //final state: X, Y without changes, Z moved to exit track, one platform is free.
-        //                    trainZ.ForceMove(empty_exit_track);
-        //                }
-        //                else
-        //                {
-        //                    while(!empty_peron_track.TryReserve());
-        //                    empty_exit_track.Free();
-        //                    empty_exit_track_junction.Free();
-        //                    empty_exit_track = null;
-        //                    empty_exit_track_junction = null;
-        //                }
-        //            }
+                        //junction between peron and empty exit track
+                        empty_exit_track_junction = GetParentJunction(empty_exit_track);
+                        //using different junction than between X and Y
+                        if (empty_exit_track_junction != deadlock_junction)
+                            while (!empty_exit_track_junction.TryReserve()) ;
 
-        //            //move Y to empty platform track
-        //            trainY.ForceMove(empty_peron_track);
+                        //get 2nd track from blocked platform (track neighbouring to X train)
+                        empty_peron_track = (deadlock_platform.TrackDown != deadlock_peron_track ? deadlock_peron_track : deadlock_platform.TrackTop);
+                        trainZ = Trains.Find(t => t.CurrentTrack == empty_peron_track);
 
-        //            //move X to its exit track, wait for its departure
-        //            trainX.ForceMove(deadlock_exit_track);
-        //            trainX.TrainStatus = Train.Status.Departing;
-        //            trainX.DepartFromStation(false);
-                    
-        //            //move Y to X initial place - Y destination platform
-        //            trainY.ForceMove(deadlock_exit_track);
-        //            trainY.ForceMove(deadlock_peron_track);
-        //            //switch back to automated mode
-        //            trainY.TrainStatus = Train.Status.UnloadingOnPlatform;
-        //            trainY.ForceMoveFlag = false;
-        //            deadlock_exit_track.Free();
+                        //train departed meanwhile
+                        if (trainZ != null)
+                        {
+                            trainZ.ForceMoveFlag = true;
+                            //final state: X, Y without changes, Z moved to exit track, one platform is free.
+                            trainZ.ForceMove(empty_exit_track);
+                        }
+                        else
+                        {
+                            while (!empty_peron_track.TryReserve()) ;
+                            empty_exit_track.Free();
+                            empty_exit_track_junction.Free();
+                            empty_exit_track = null;
+                            empty_exit_track_junction = null;
+                        }
+                    }
 
-        //            //empty exit track was needed - Z is waiting there
-        //            if (empty_exit_track != null)
-        //            {
-        //                //take Z back to its platform track
-        //                trainZ.ForceMove(empty_peron_track);
-        //                trainZ.ForceMoveFlag = false;
+                    //move Y to empty platform track
+                    trainY.ForceMove(empty_peron_track);
 
-        //                empty_exit_track.Free();
-        //                empty_exit_track_junction.Free();
-        //            }
+                    //move X to its exit track, wait for its departure
+                    trainX.ForceMove(deadlock_exit_track);
+                    trainX.TrainStatus = Train.Status.Departing;
+                    trainX.DepartFromStation(false);
 
-        //            if (empty_exit_track_junction != deadlock_junction)
-        //                deadlock_junction.Free();
-        //        }
-        //    }
-        //}
+                    //move Y to X initial place - Y destination platform
+                    trainY.ForceMove(deadlock_exit_track);
+                    trainY.ForceMove(deadlock_peron_track);
+                    //switch back to automated mode
+                    trainY.TrainStatus = Train.Status.UnloadingOnPlatform;
+                    trainY.ForceMoveFlag = false;
+                    deadlock_exit_track.Free();
 
+                    //empty exit track was needed - Z is waiting there
+                    if (empty_exit_track != null)
+                    {
+                        //take Z back to its platform track
+                        trainZ.ForceMove(empty_peron_track);
+                        trainZ.ForceMoveFlag = false;
 
+                        empty_exit_track.Free();
+                        empty_exit_track_junction.Free();
+                    }
+
+                    if (empty_exit_track_junction != deadlock_junction)
+                        deadlock_junction.Free();
+                }
+        }
         /// <summary>
         /// Method to find empty platform track
         /// </summary>
