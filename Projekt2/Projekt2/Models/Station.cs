@@ -130,6 +130,7 @@ namespace Projekt2.Models
                     UpdateTrackLabel(platform.TrackDown);
                     UpdateTrackLabel(platform.TrackTop);
                 }
+                Thread.Sleep(1);
             }
         }
         /// <summary>
