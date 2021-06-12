@@ -58,7 +58,9 @@ namespace Projekt2.Models
             CurrentTrack = entry;
             while(!CurrentTrack.TryReserve()); 
             DestinationPlatform = station.Platforms.ElementAt(random.Next(0, station.Platforms.Count));
+            DestinationPlatform.TrainsQueueLock.AcquireWriterLock(-1);
             DestinationPlatform.TrainsQueue.Add(this); 
+            DestinationPlatform.TrainsQueueLock.ReleaseWriterLock();
             Junction junction = station.Junctions.ElementAt(random.Next(0, station.Junctions.Count));
             ExitTrack = junction.EntryTracks.ElementAt(random.Next(0, junction.EntryTracks.Count));
             WaitTime = new TimeSpan(0,0,0,0,random.Next(0, Station.maxStayTime));
@@ -132,8 +134,10 @@ namespace Projekt2.Models
         /// </summary>
         public void GoToPlatformTrack()
         {
+            DestinationPlatform.TrainsQueueLock.AcquireReaderLock(-1);
             if (DestinationPlatform.TrainsQueue.First() != this)
                 return; 
+            DestinationPlatform.TrainsQueueLock.ReleaseReaderLock();
 
             Track platformTrack = DestinationPlatform.TryReserve();
             if(platformTrack == null)
@@ -148,7 +152,9 @@ namespace Projekt2.Models
             CurrentTrack = platformTrack; 
             parentJunction.Free();
             temp.Free();
+            DestinationPlatform.TrainsQueueLock.AcquireWriterLock(-1);
             DestinationPlatform.TrainsQueue.Remove(this); 
+            DestinationPlatform.TrainsQueueLock.ReleaseWriterLock();
             TrainStatus = Status.UnloadingOnPlatform;
         }
         /// <summary>
@@ -189,7 +195,9 @@ namespace Projekt2.Models
             Thread.Sleep(Station.arrivalTime);
             if(releaseTrack)
                 CurrentTrack.Free();
+            station.TrainsLock.AcquireWriterLock(-1);
             station.Trains.Remove(this);
+            station.TrainsLock.ReleaseWriterLock();
             TrainStatus = Status.Departed;
         }
     }

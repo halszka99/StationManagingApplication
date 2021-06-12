@@ -19,6 +19,8 @@ namespace Projekt2.Models
         public List<Platform> Platforms { get; set; }
         // List of junctions belonging to station
         public List<Junction> Junctions { get; set; }
+        // Better mutex for trains list
+        public ReaderWriterLock TrainsLock = new ReaderWriterLock();
         // List of trains on the station
         public List<Train> Trains { get; set; }
         // Variable that define if simulation still last
@@ -88,27 +90,22 @@ namespace Projekt2.Models
         /// <param name="track"> Track that TextBox is updating </param>
         void UpdateTrackLabel(Track track)
         {
-            try
+            track.TextBox.Invoke((Action)delegate
             {
-                track.TextBox.Invoke((Action)delegate
+                if (track.IsEmpty)
+                    track.TextBox.Text = track.Id + " Free";
+                else
                 {
-                    if (track.IsEmpty)
-                        track.TextBox.Text = track.Id + " Free";
+                    Train tr = null;
+                    TrainsLock.AcquireReaderLock(-1);
+                    tr = Trains.Find(t => t.CurrentTrack == track);
+                    TrainsLock.ReleaseReaderLock();
+                    if (tr != null)
+                        track.TextBox.Text = track.Id + " T" + tr.Id;
                     else
-                    {
-                        Train tr = null;
-                        tr = Trains.Find(t => t.CurrentTrack == track);
-                        if (tr != null)
-                            track.TextBox.Text = track.Id + " T" + tr.Id;
-                        else
-                            track.TextBox.Text = track.Id + " Reserved";
-                    }
-                });
-            }
-            catch (System.Exception)
-            {   
-                throw;
-            }
+                        track.TextBox.Text = track.Id + " Reserved";
+                }
+            });
         }
         /// <summary>
         /// Method to managing simulation 
@@ -136,6 +133,7 @@ namespace Projekt2.Models
                     UpdateTrackLabel(platform.TrackDown);
                     UpdateTrackLabel(platform.TrackTop);
                 }
+                Thread.Sleep(1);
             }
         }
         /// <summary>
@@ -176,8 +174,10 @@ namespace Projekt2.Models
             simulationManager.Abort();
             trainManager.Abort();
             stationManager.Abort();
+            TrainsLock.AcquireWriterLock(-1);
             foreach (var train in Trains)
                 train.thread.Abort();
+            TrainsLock.ReleaseWriterLock();
             
         }
         /// <summary>
@@ -211,7 +211,9 @@ namespace Projekt2.Models
                 {
                     Track trackToGenerateTrain = emptyTracks.ElementAt(random.Next(0, emptyTracks.Count));
                     Train train = new Train(this, trackToGenerateTrain,TrainId++);
+                    TrainsLock.AcquireWriterLock(-1);
                     Trains.Add(train);
+                    TrainsLock.ReleaseWriterLock();
                 }
                 // Releasing mutex of empty tracks
                 foreach (var track in emptyTracks)
@@ -227,11 +229,13 @@ namespace Projekt2.Models
         {
             while (Go)
             {
+                TrainsLock.AcquireReaderLock(-1);
                 //find all trains which are waiting for too long for exiting platform
                 var lockedTrains = Trains.FindAll(t =>
                     (DateTime.Now.Subtract(t.CurrentTime).Subtract(t.WaitTime) > overTime)
                      && (t.TrainStatus == Train.Status.WaitingForExitTrack));
-             
+                TrainsLock.ReleaseReaderLock();
+
                 foreach (Train trainX in lockedTrains)
                 {
                     Track deadlock_peron_track = trainX.CurrentTrack;
@@ -240,7 +244,9 @@ namespace Projekt2.Models
                     Junction deadlock_junction = GetParentJunction(deadlock_exit_track);
 
                     //get train which locks X's exit track
+                    TrainsLock.AcquireReaderLock(-1);
                     Train trainY = Trains.Find(t => t.CurrentTrack == deadlock_exit_track);
+                    TrainsLock.ReleaseReaderLock();
                     //start acting only when both are waiting for "track swap"
                     if (trainY == null || trainY.TrainStatus != Train.Status.WaitingForPlatform)
                         continue;
@@ -271,8 +277,9 @@ namespace Projekt2.Models
 
                         //get 2nd track from blocked platform (track neighbouring to X train)
                         empty_peron_track = (deadlock_platform.TrackDown!=deadlock_peron_track ? deadlock_platform.TrackDown : deadlock_platform.TrackTop);
+                        TrainsLock.AcquireReaderLock(-1);
                         trainZ = Trains.Find(t => t.CurrentTrack == empty_peron_track);
-                        
+                        TrainsLock.ReleaseReaderLock();
                         //train departed meanwhile
                         if(trainZ != null)
                         {
@@ -321,6 +328,7 @@ namespace Projekt2.Models
                         deadlock_junction.Free();
                 }
             }
+            Thread.Sleep(1);
         }
         /// <summary>
         /// Method to find empty platform track
