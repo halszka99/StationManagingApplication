@@ -36,7 +36,7 @@ namespace Projekt2.Models
         // Value indicating time that train spend on entry track
         public static TimeSpan arrivalTime = new TimeSpan(0,0,0,2);
         // Value indicating max train overtime on platform
-        public static TimeSpan overTime = new TimeSpan(0,0,0,5);
+        public static TimeSpan overTime = new TimeSpan(0,0,0,10);
         // Value indicating min time of random time to generate train in miliseconds
         public static int minCheckTime = 2000;
         // Value indicating max  time of random time to generate train in miliseconds
@@ -171,6 +171,7 @@ namespace Projekt2.Models
         {
             while (Go)
             {
+                Thread.Sleep(1);
                 Maneuver();
                 GenerateTrain(); 
             }
@@ -210,7 +211,6 @@ namespace Projekt2.Models
             {
                 track.TrackMutex.ReleaseMutex();
             }
-
         }
 
         public void Maneuver()
@@ -223,7 +223,20 @@ namespace Projekt2.Models
             {
                 Track deadlock_peron_track = trainX.CurrentTrack;
                 Track deadlock_exit_track = trainX.ExitTrack;
+                Platform deadlock_platform = trainX.DestinationPlatform;
                 Junction deadlock_junction = GetParentJunction(deadlock_exit_track);
+
+                Train trainY = Trains.Find(t => t.CurrentTrack == deadlock_exit_track);
+                if (trainY == null || trainY.TrainStatus == Train.Status.Departing || trainY.TrainStatus == Train.Status.Departed)
+                    return;
+
+                trainX.DestinationPlatform.TrainsQueueLock.EnterWriteLock();
+                trainX.DestinationPlatform.TrainsQueue.Remove(trainX);
+                trainX.DestinationPlatform.TrainsQueueLock.ExitWriteLock();
+
+                trainY.DestinationPlatform.TrainsQueueLock.EnterWriteLock();
+                trainY.DestinationPlatform.TrainsQueue.Remove(trainY);
+                trainY.DestinationPlatform.TrainsQueueLock.ExitWriteLock();
 
                 while (!deadlock_junction.TryReserve());
 
@@ -232,17 +245,15 @@ namespace Projekt2.Models
                     train.ForceMoveFlag = true;
                 }
 
-                Train trainY = Trains.Find(t => t.CurrentTrack == deadlock_exit_track);
-                if (trainY == null || trainY.TrainStatus == Train.Status.Departing || trainY.TrainStatus == Train.Status.Departed)
-                    return;
-
-                Track emptyExitTrack = GetEmptyExitTrack();
+                Track emptyExitTrack;
+                while ( (emptyExitTrack = GetEmptyExitTrack()) == null);
                 trainX.ForceMove(emptyExitTrack, deadlock_junction);
                 trainY.ForceMove(deadlock_peron_track, deadlock_junction);
                 trainX.ForceMove(deadlock_exit_track, deadlock_junction);
                 trainY.TrainStatus = Train.Status.UnloadingOnPlatform;
                 trainX.TrainStatus = Train.Status.Departing;
 
+                deadlock_junction.Free(); 
                 foreach (var train in Trains)
                 {
                     train.ForceMoveFlag = false;

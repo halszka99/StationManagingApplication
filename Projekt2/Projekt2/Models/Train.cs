@@ -45,7 +45,7 @@ namespace Projekt2.Models
         public Boolean ForceMoveFlag  { get; set; }
         // Train thread
         public Thread thread;
-
+ 
         /// <summary>
         /// Train constructor
         /// </summary>
@@ -60,7 +60,9 @@ namespace Projekt2.Models
             CurrentTrack = entry;
             while(!CurrentTrack.TryReserve()); 
             DestinationPlatform = station.Platforms.ElementAt(random.Next(0, station.Platforms.Count));
-            DestinationPlatform.TrainsQueue.Add(this); 
+            DestinationPlatform.TrainsQueueLock.EnterWriteLock();
+            DestinationPlatform.TrainsQueue.Add(this);
+            DestinationPlatform.TrainsQueueLock.ExitWriteLock();
             Junction junction = station.Junctions.ElementAt(random.Next(0, station.Junctions.Count));
             ExitTrack = junction.EntryTracks.ElementAt(random.Next(0, junction.EntryTracks.Count));
             WaitTime = new TimeSpan(0,0,0,random.Next(1, Station.maxStayTime));
@@ -74,8 +76,10 @@ namespace Projekt2.Models
         /// </summary>
         public void Run()
         {
-            while(true)
-                if(!ForceMoveFlag)
+            while (true)
+            {
+                if (!ForceMoveFlag)
+                {
                     switch (TrainStatus)
                     {
                         case Status.ArrivingToStation:
@@ -97,6 +101,8 @@ namespace Projekt2.Models
                             thread.Abort();
                             return;
                     }
+                }
+            }
         }
         /// <summary>
         /// Station manager order: go to target station
@@ -121,9 +127,11 @@ namespace Projekt2.Models
         {
             parent.OccupiedBy = this;
             Thread.Sleep(Station.junctionTime);
+            parent.OccupiedBy = null;
 
             Track temp = CurrentTrack;
             CurrentTrack = target;
+            CurrentTrack.IsEmpty = false; 
 
             temp.Free();
         }
@@ -140,8 +148,15 @@ namespace Projekt2.Models
         /// </summary>
         public void GoToPlatformTrack()
         {
-            if (DestinationPlatform.TrainsQueue.First() != this)
-                return; 
+            if (DestinationPlatform.TrainsQueue.Count == 0)
+                return;
+
+            DestinationPlatform.TrainsQueueLock.EnterReadLock();
+            var first = DestinationPlatform.TrainsQueue.First();
+            DestinationPlatform.TrainsQueueLock.ExitReadLock();
+
+            if ( first!= this)
+                return;
 
             Track platformTrack = DestinationPlatform.TryReserve();
             if(platformTrack == null)
@@ -156,7 +171,11 @@ namespace Projekt2.Models
             CurrentTrack = platformTrack; 
             parentJunction.Free();
             temp.Free();
-            DestinationPlatform.TrainsQueue.Remove(this); 
+
+            DestinationPlatform.TrainsQueueLock.EnterWriteLock();
+            DestinationPlatform.TrainsQueue.Remove(this);
+            DestinationPlatform.TrainsQueueLock.ExitWriteLock();
+
             TrainStatus = Status.UnloadingOnPlatform;
             CurrentTime = DateTime.Now;
             DepartTime = CurrentTime + WaitTime;

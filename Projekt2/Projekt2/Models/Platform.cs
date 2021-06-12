@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Projekt2; 
@@ -21,6 +22,7 @@ namespace Projekt2.Models
         public Track TrackDown { get; set; }
         // List of trains that destination platform is this platform
         public List<Train> TrainsQueue { get; set; }
+        public ReaderWriterLockSlim TrainsQueueLock = new ReaderWriterLockSlim();
         /// <summary>
         /// Platform constructor
         /// </summary>
