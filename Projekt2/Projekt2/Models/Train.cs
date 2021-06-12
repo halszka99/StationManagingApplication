@@ -156,6 +156,7 @@ namespace Projekt2.Models
         /// </summary>
         public void StayOnTrack()
         {
+            CurrentTime = DateTime.Now;
             Thread.Sleep(WaitTime);
             TrainStatus = Status.WaitingForExitTrack;
         }

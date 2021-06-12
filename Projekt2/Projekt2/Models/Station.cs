@@ -88,21 +88,27 @@ namespace Projekt2.Models
         /// <param name="track"> Track that TextBox is updating </param>
         void UpdateTrackLabel(Track track)
         {
-            track.TextBox.Invoke((Action)delegate
+            try
             {
-                if (track.IsEmpty)
-                    track.TextBox.Text = track.Id + " Free";
-                else
+                track.TextBox.Invoke((Action)delegate
                 {
-                    Train tr = null;
-                    tr = Trains.Find(t => t.CurrentTrack == track);
-                    if(tr != null)
-                        track.TextBox.Text = track.Id + " T" + tr.Id;
+                    if (track.IsEmpty)
+                        track.TextBox.Text = track.Id + " Free";
                     else
-                        track.TextBox.Text = track.Id + " Reserved";
-                }
-
-            });
+                    {
+                        Train tr = null;
+                        tr = Trains.Find(t => t.CurrentTrack == track);
+                        if (tr != null)
+                            track.TextBox.Text = track.Id + " T" + tr.Id;
+                        else
+                            track.TextBox.Text = track.Id + " Reserved";
+                    }
+                });
+            }
+            catch (System.Exception)
+            {   
+                throw;
+            }
         }
         /// <summary>
         /// Method to managing simulation 
@@ -139,10 +145,17 @@ namespace Projekt2.Models
         /// <param name="text"> Text to fill TextBox </param>
         private void SetTextBox(TextBox textBox, string text)
         {
-            textBox.Invoke((Action)delegate
+            try
             {
-                textBox.Text = text;
-            });
+                textBox.Invoke((Action)delegate
+                {
+                    textBox.Text = text;
+                });
+            }
+            catch (System.Exception)
+            {
+                throw;
+            }
         }
         /// <summary>
         /// Method to start simulation - start threads
@@ -257,7 +270,7 @@ namespace Projekt2.Models
                             while(!empty_exit_track_junction.TryReserve());
 
                         //get 2nd track from blocked platform (track neighbouring to X train)
-                        empty_peron_track = (deadlock_platform.TrackDown!=deadlock_peron_track ? deadlock_peron_track : deadlock_platform.TrackTop);
+                        empty_peron_track = (deadlock_platform.TrackDown!=deadlock_peron_track ? deadlock_platform.TrackDown : deadlock_platform.TrackTop);
                         trainZ = Trains.Find(t => t.CurrentTrack == empty_peron_track);
                         
                         //train departed meanwhile
