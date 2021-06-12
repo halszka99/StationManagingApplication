@@ -77,7 +77,9 @@ namespace Projekt2.Models
         public void Run()
         {
             while(true)
-                if(!ForceMoveFlag)
+                if(ForceMoveFlag)
+                    Thread.Sleep(1);
+                else
                     switch (TrainStatus)
                     {
                         case Status.ArrivingToStation:
@@ -135,9 +137,10 @@ namespace Projekt2.Models
         public void GoToPlatformTrack()
         {
             DestinationPlatform.TrainsQueueLock.AcquireReaderLock(-1);
-            if (DestinationPlatform.TrainsQueue.First() != this)
-                return; 
+            Train first = DestinationPlatform.TrainsQueue.First();
             DestinationPlatform.TrainsQueueLock.ReleaseReaderLock();
+            if (first != this)
+                return; 
 
             Track platformTrack = DestinationPlatform.TryReserve();
             if(platformTrack == null)

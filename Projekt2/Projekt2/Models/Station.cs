@@ -310,6 +310,9 @@ namespace Projekt2.Models
                     trainY.ForceMove(deadlock_peron_track);
                     //switch back to automated mode
                     trainY.TrainStatus = Train.Status.UnloadingOnPlatform;
+                    deadlock_platform.TrainsQueueLock.AcquireWriterLock(-1);
+                    deadlock_platform.TrainsQueue.Remove(trainY);
+                    deadlock_platform.TrainsQueueLock.ReleaseWriterLock();
                     trainY.ForceMoveFlag = false;
                     deadlock_exit_track.Free();
 
