@@ -219,7 +219,9 @@ namespace Projekt2.Models
             Thread.Sleep(Station.arrivalTime);
             if(releaseTrack)
                 CurrentTrack.Free();
+            station.TrainsLock.EnterWriteLock();
             station.Trains.Remove(this);
+            station.TrainsLock.ExitWriteLock();
             TrainStatus = Status.Departed;
         }
     }

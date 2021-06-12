@@ -20,6 +20,7 @@ namespace Projekt2.Models
         // List of junctions belonging to station
         public List<Junction> Junctions { get; set; }
         // List of trains on the station
+        public ReaderWriterLockSlim TrainsLock = new ReaderWriterLockSlim();
         public List<Train> Trains { get; set; }
         // Variable that define if simulation still last
         public bool Go { get; set; }
@@ -95,7 +96,9 @@ namespace Projekt2.Models
                 else
                 {
                     Train tr = null;
+                    TrainsLock.EnterReadLock();
                     tr = Trains.Find(t => t.CurrentTrack == track);
+                    TrainsLock.ExitReadLock();
                     if(tr != null)
                         track.TextBox.Text = track.Id + " T" + tr.Id;
                     else
@@ -164,8 +167,10 @@ namespace Projekt2.Models
             simulationManager.Abort();
             //trainManager.Abort();
             stationManager.Abort();
+            TrainsLock.EnterWriteLock();
             foreach (var train in Trains)
                 train.thread.Abort();
+            TrainsLock.ExitWriteLock();
             
         }
         public void StationManaging()
@@ -205,7 +210,9 @@ namespace Projekt2.Models
             {
                 Track trackToGenerateTrain = emptyTracks.ElementAt(random.Next(0, emptyTracks.Count));
                 Train train = new Train(this, trackToGenerateTrain,TrainId++);
+                TrainsLock.EnterWriteLock();
                 Trains.Add(train);
+                TrainsLock.ExitWriteLock();
             }
             // Releasing mutex of empty tracks
             foreach (var track in emptyTracks)
@@ -216,10 +223,11 @@ namespace Projekt2.Models
 
         public void Maneuver()
         {
+            TrainsLock.EnterReadLock();
             Train trainX = Trains.Find(t =>
                     (t.TrainStatus == Train.Status.WaitingForExitTrack) &&
                     (DateTime.Now.Subtract(t.DepartTime) > overTime));
-
+            TrainsLock.ExitReadLock();
             if (trainX != null)
             {
                 Track deadlock_peron_track = trainX.CurrentTrack;
@@ -227,7 +235,9 @@ namespace Projekt2.Models
                 Platform deadlock_platform = trainX.DestinationPlatform;
                 Junction deadlock_junction = GetParentJunction(deadlock_exit_track);
 
+                TrainsLock.EnterReadLock();
                 Train trainY = Trains.Find(t => t.CurrentTrack == deadlock_exit_track);
+                TrainsLock.ExitReadLock();
                 if (trainY == null || trainY.TrainStatus == Train.Status.Departing || trainY.TrainStatus == Train.Status.Departed)
                     return;
 
@@ -241,10 +251,10 @@ namespace Projekt2.Models
 
                 while (!deadlock_junction.TryReserve());
 
+                TrainsLock.EnterReadLock();
                 foreach (var train in Trains)
-                {
                     train.ForceMoveFlag = true;
-                }
+                TrainsLock.ExitReadLock();
 
                 Track emptyExitTrack;
                 while ( (emptyExitTrack = GetEmptyExitTrack()) == null);
@@ -255,10 +265,10 @@ namespace Projekt2.Models
                 trainX.TrainStatus = Train.Status.Departing;
 
                 deadlock_junction.Free(); 
+                TrainsLock.EnterReadLock();
                 foreach (var train in Trains)
-                {
                     train.ForceMoveFlag = false;
-                }
+                TrainsLock.ExitReadLock();
             }
         }
         /// <summary>
@@ -267,9 +277,10 @@ namespace Projekt2.Models
         public void Maneuver2()
         {
                 //find all trains which are waiting for too long for exiting platform
+                TrainsLock.EnterReadLock();
                 var trainX = Trains.Find(t =>
                     ((t.TrainStatus == Train.Status.WaitingForExitTrack) && (DateTime.Now.Subtract(t.DepartTime) > overTime)));
-
+                TrainsLock.ExitReadLock();
                 //foreach (Train trainX in lockedTrains)
                 if (trainX != null)
                 {
@@ -279,7 +290,9 @@ namespace Projekt2.Models
                     Junction deadlock_junction = GetParentJunction(deadlock_exit_track);
 
                     //get train which locks X's exit track
+                    TrainsLock.EnterReadLock();
                     Train trainY = Trains.Find(t => t.CurrentTrack == deadlock_exit_track);
+                    TrainsLock.ExitReadLock();
                 //start acting only when both are waiting for "track swap"
                 if (trainY == null || trainY.TrainStatus != Train.Status.WaitingForPlatform)
                     return;
@@ -310,7 +323,9 @@ namespace Projekt2.Models
 
                         //get 2nd track from blocked platform (track neighbouring to X train)
                         empty_peron_track = (deadlock_platform.TrackDown != deadlock_peron_track ? deadlock_peron_track : deadlock_platform.TrackTop);
+                        TrainsLock.EnterReadLock();
                         trainZ = Trains.Find(t => t.CurrentTrack == empty_peron_track);
+                        TrainsLock.ExitReadLock();
 
                         //train departed meanwhile
                         if (trainZ != null)
