@@ -78,7 +78,7 @@ namespace Projekt2.Models
         {
             while (true)
             {
-                if (ForceMoveFlag)
+                if (ForceMoveFlag && TrainStatus != Status.Departed && TrainStatus != Status.Departing)
                     Thread.Sleep(1);
                 else
                 {
