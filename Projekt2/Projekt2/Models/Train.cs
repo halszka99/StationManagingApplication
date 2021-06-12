@@ -154,7 +154,7 @@ namespace Projekt2.Models
                 return;
 
             DestinationPlatform.TrainsQueueLock.EnterReadLock();
-            var first = DestinationPlatform.TrainsQueue.First();
+            var first = DestinationPlatform.TrainsQueue.FirstOrDefault();
             DestinationPlatform.TrainsQueueLock.ExitReadLock();
 
             if ( first!= this)

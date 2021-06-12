@@ -222,11 +222,11 @@ namespace Projekt2.Models
             while (Go)
             {
                 TrainsLock.EnterReadLock();
-                Train trainX = Trains.Find(t =>
+                var lockedTrains = Trains.FindAll(t =>
                         (t.TrainStatus == Train.Status.WaitingForExitTrack) &&
                         (DateTime.Now.Subtract(t.DepartTime) > overTime));
                 TrainsLock.ExitReadLock();
-                if (trainX != null)
+                foreach (var trainX in lockedTrains)
                 {
                     Track deadlock_peron_track = trainX.CurrentTrack;
                     Track deadlock_exit_track = trainX.ExitTrack;
@@ -237,7 +237,7 @@ namespace Projekt2.Models
                     Train trainY = Trains.Find(t => t.CurrentTrack == deadlock_exit_track);
                     TrainsLock.ExitReadLock();
                     if (trainY == null || trainY.TrainStatus == Train.Status.Departing || trainY.TrainStatus == Train.Status.Departed)
-                        break;
+                        continue;
 
                     trainX.DestinationPlatform.TrainsQueueLock.EnterWriteLock();
                     trainX.DestinationPlatform.TrainsQueue.Remove(trainX);
